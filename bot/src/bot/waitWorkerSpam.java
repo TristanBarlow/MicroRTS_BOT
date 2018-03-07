@@ -114,7 +114,7 @@ public class waitWorkerSpam extends AbstractionLayerAI {
     
     public void workersBehavior(List<Unit> workers, Player p, GameState gs) 
     {
-    	int workerThreshHold = 2;
+    	int workerThreshHold = 7;
     	PhysicalGameState pgs = gs.getPhysicalGameState();
     	List<Unit> careTakers = new LinkedList<Unit>();
     	List<Unit> AgroWorkers = new LinkedList<Unit>();
