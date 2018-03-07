@@ -165,7 +165,12 @@ public class waitWorkerSpam extends AbstractionLayerAI {
 
 	public void baseBehavior(Unit u, Player p, PhysicalGameState pgs) 
 	{
-		while(p.getResources()>=workerType.cost) {train(u, workerType);}
+		int pR = p.getResources();
+		while(pR >=workerType.cost) 
+		{
+			train(u, workerType); 
+			pR  = pR - workerType.cost;
+		}
 	}
 
 
