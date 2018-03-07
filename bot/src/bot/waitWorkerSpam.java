@@ -139,28 +139,29 @@ public class waitWorkerSpam extends AbstractionLayerAI {
     
     public void workersBehavior(List<Unit> workers, Player p, GameState gs) 
     {
-    	int workerThreshHold = 4;
+    	int workerThreshHold = 3;
     	PhysicalGameState pgs = gs.getPhysicalGameState();
     	List<Unit> careTakers = new LinkedList<Unit>();
     	careTakers = workers;
     	List<Unit> AgroWorkers = new LinkedList<Unit>();
     	int bases = 0;
+    	
     	for(Unit u: pgs.getUnits())
     	{
     		if(u.getType()== baseType) {bases++;}
     	}
     	
     	 List<Integer> reservedPositions = new LinkedList<Integer>();
-    	if(bases < 1)
+    	if(bases <= 1)
     	{
     		if (p.getResources() >= barracksType.cost && !careTakers.isEmpty()) {
                 Unit u = careTakers.remove(0);
                 buildIfNotAlreadyBuilding(u,barracksType,u.getX(),u.getY(),reservedPositions,p,pgs);
     	}
     		
-    	if(workers.size()>= workerThreshHold)
+    	if(careTakers.size()>= workerThreshHold)
     	{
-    		AgroWorkers = workers;
+    		AgroWorkers = careTakers;
     		AgroWorkers.remove(0);
     		allAttackNearest(AgroWorkers, p, gs);
     		//for(Unit u:AgroWorkers) attackNearestEnemy(p, gs , u);
@@ -208,10 +209,9 @@ public class waitWorkerSpam extends AbstractionLayerAI {
 	public void baseBehavior(Unit u, Player p, PhysicalGameState pgs) 
 	{
 		int pR = p.getResources();
-		while(pR >=workerType.cost) 
+		if(pR >= workerType.cost)
 		{
 			train(u, workerType); 
-			pR  = pR - workerType.cost;
 		}
 	}
 
