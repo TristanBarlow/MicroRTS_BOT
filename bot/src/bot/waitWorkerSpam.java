@@ -127,6 +127,10 @@ public class waitWorkerSpam extends AbstractionLayerAI {
     {
     	PhysicalGameState pgs = gs.getPhysicalGameState();
     	Unit enemyToAttack = getNearestEnemy(pgs, p, workers.get(0));
+    	if(enemyToAttack == null)
+    	{
+    		
+    	}
     	for (Unit u : workers)
     	{
     		attack(u, enemyToAttack);
@@ -135,20 +139,35 @@ public class waitWorkerSpam extends AbstractionLayerAI {
     
     public void workersBehavior(List<Unit> workers, Player p, GameState gs) 
     {
-    	int workerThreshHold = 2;
+    	int workerThreshHold = 4;
     	PhysicalGameState pgs = gs.getPhysicalGameState();
     	List<Unit> careTakers = new LinkedList<Unit>();
+    	careTakers = workers;
     	List<Unit> AgroWorkers = new LinkedList<Unit>();
+    	int bases = 0;
+    	for(Unit u: pgs.getUnits())
+    	{
+    		if(u.getType()== baseType) {bases++;}
+    	}
     	
+    	 List<Integer> reservedPositions = new LinkedList<Integer>();
+    	if(bases < 1)
+    	{
+    		if (p.getResources() >= barracksType.cost && !careTakers.isEmpty()) {
+                Unit u = careTakers.remove(0);
+                buildIfNotAlreadyBuilding(u,barracksType,u.getX(),u.getY(),reservedPositions,p,pgs);
+    	}
+    		
     	if(workers.size()>= workerThreshHold)
     	{
     		AgroWorkers = workers;
+    		AgroWorkers.remove(0);
     		allAttackNearest(AgroWorkers, p, gs);
     		//for(Unit u:AgroWorkers) attackNearestEnemy(p, gs , u);
     	}
     	else
     	{
-    		for (Unit u : workers) {
+    		for (Unit u : careTakers) {
                 Unit closestBase = null;
                 Unit closestResource = null;
                 int closestDistance = 0;
@@ -182,6 +201,7 @@ public class waitWorkerSpam extends AbstractionLayerAI {
                 }
     		}
     	}
+    }
 	}
 
 
