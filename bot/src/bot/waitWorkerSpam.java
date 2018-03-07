@@ -143,8 +143,7 @@ public class waitWorkerSpam extends AbstractionLayerAI {
     	if(workers.size()> workerThreshHold)
     	{
     		AgroWorkers = workers;
-    		AgroWorkers.remove(0);
-    		allAttackNearest(AgroWorkers, p, gs);
+    		allAttackNearest(workers,p ,gs );
     		//for(Unit u:AgroWorkers) attackNearestEnemy(p, gs , u);
     	}
     	else
