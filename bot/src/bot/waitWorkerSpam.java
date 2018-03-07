@@ -125,12 +125,8 @@ public class waitWorkerSpam extends AbstractionLayerAI {
     
     public void allAttackNearest(List<Unit> workers, Player p, GameState gs)
     {
-    	PhysicalGameState pgs = gs.getPhysicalGameState();
+    	 PhysicalGameState pgs = gs.getPhysicalGameState();
     	Unit enemyToAttack = getNearestEnemy(pgs, p, workers.get(0));
-    	if(enemyToAttack == null)
-    	{
-    		
-    	}
     	for (Unit u : workers)
     	{
     		attack(u, enemyToAttack);
@@ -139,12 +135,12 @@ public class waitWorkerSpam extends AbstractionLayerAI {
     
     public void workersBehavior(List<Unit> workers, Player p, GameState gs) 
     {
-    	int workerThreshHold = 1;
+    	int workerThreshHold = 0;
     	PhysicalGameState pgs = gs.getPhysicalGameState();
     	List<Unit> careTakers = new LinkedList<Unit>();
     	List<Unit> AgroWorkers = new LinkedList<Unit>();
-
-    	if(workers.size()>= workerThreshHold)
+    	
+    	if(workers.size()> workerThreshHold)
     	{
     		AgroWorkers = workers;
     		AgroWorkers.remove(0);
