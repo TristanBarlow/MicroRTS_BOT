@@ -127,10 +127,6 @@ public class waitWorkerSpam extends AbstractionLayerAI {
     {
     	PhysicalGameState pgs = gs.getPhysicalGameState();
     	Unit enemyToAttack = getNearestEnemy(pgs, p, workers.get(0));
-    	if(enemyToAttack == null)
-    	{
-    		
-    	}
     	for (Unit u : workers)
     	{
     		attack(u, enemyToAttack);
@@ -152,7 +148,8 @@ public class waitWorkerSpam extends AbstractionLayerAI {
     	}
     	
     	 List<Integer> reservedPositions = new LinkedList<Integer>();
-    	if(bases <= 1)
+    	 
+    	if(bases == 0)
     	{
     		if (p.getResources() >= barracksType.cost && !careTakers.isEmpty()) {
                 Unit u = careTakers.remove(0);
@@ -162,7 +159,6 @@ public class waitWorkerSpam extends AbstractionLayerAI {
     	if(careTakers.size()>= workerThreshHold)
     	{
     		AgroWorkers = careTakers;
-    		AgroWorkers.remove(0);
     		allAttackNearest(AgroWorkers, p, gs);
     		//for(Unit u:AgroWorkers) attackNearestEnemy(p, gs , u);
     	}
