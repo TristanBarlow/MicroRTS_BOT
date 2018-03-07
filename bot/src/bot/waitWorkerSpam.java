@@ -93,23 +93,44 @@ public class waitWorkerSpam extends AbstractionLayerAI {
       
     }
 
+    public Unit getNearestEnemy(PhysicalGameState pgs, Player p, Unit u)
+    {
+    	 Unit closestEnemy = null;
+         int closestDistance = 0;
+         for(Unit u2:pgs.getUnits()) 
+         {
+             if (u2.getPlayer()>=0 && u2.getPlayer()!=p.getID()) { 
+                 int d = Math.abs(u2.getX() - u.getX()) + Math.abs(u2.getY() - u.getY());
+                 if (closestEnemy==null || d<closestDistance) {
+                     closestEnemy = u2;
+                     closestDistance = d;
+                 }
+             }
+         }
+         if (closestEnemy!=null)
+         {
+             return closestEnemy;
+         }
+         else
+         {
+        	 return null;
+         }
+    }
+    
     public void attackNearestEnemy(Player p, GameState gs, Unit u)
     {
         PhysicalGameState pgs = gs.getPhysicalGameState();
-        Unit closestEnemy = null;
-        int closestDistance = 0;
-        for(Unit u2:pgs.getUnits()) {
-            if (u2.getPlayer()>=0 && u2.getPlayer()!=p.getID()) { 
-                int d = Math.abs(u2.getX() - u.getX()) + Math.abs(u2.getY() - u.getY());
-                if (closestEnemy==null || d<closestDistance) {
-                    closestEnemy = u2;
-                    closestDistance = d;
-                }
-            }
-        }
-        if (closestEnemy!=null) {
-            attack(u,closestEnemy);
-        }
+            attack(u,getNearestEnemy(pgs, p, u));
+    }
+    
+    public void allAttackNearest(List<Unit> workers, Player p, GameState gs)
+    {
+    	PhysicalGameState pgs = gs.getPhysicalGameState();
+    	Unit enemyToAttack = getNearestEnemy(pgs, p, workers.get(0));
+    	for (Unit u : workers)
+    	{
+    		attack(u, enemyToAttack);
+    	}
     }
     
     public void workersBehavior(List<Unit> workers, Player p, GameState gs) 
@@ -119,10 +140,12 @@ public class waitWorkerSpam extends AbstractionLayerAI {
     	List<Unit> careTakers = new LinkedList<Unit>();
     	List<Unit> AgroWorkers = new LinkedList<Unit>();
     	
-    	if(workers.size()> workerThreshHold)
+    	if(workers.size()>= workerThreshHold)
     	{
     		AgroWorkers = workers;
-    		for(Unit u:AgroWorkers) attackNearestEnemy(p, gs , u);
+    		AgroWorkers.remove(0);
+    		allAttackNearest(AgroWorkers, p, gs);
+    		//for(Unit u:AgroWorkers) attackNearestEnemy(p, gs , u);
     	}
     	else
     	{
