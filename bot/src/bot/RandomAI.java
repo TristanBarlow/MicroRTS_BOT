@@ -45,6 +45,7 @@ public class RandomAI extends AI {
             // The only way the player action generator returns an exception is if there are no units that
             // can execute actions, in this case, just return an empty action:
             // However, this should never happen, since we are checking for this at the beginning
+			//this is a test
             return new PlayerAction();
         }
     }
