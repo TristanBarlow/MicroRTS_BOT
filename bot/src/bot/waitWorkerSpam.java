@@ -29,10 +29,16 @@ public class waitWorkerSpam extends AbstractionLayerAI {
 	
   Random r = new Random();
    protected UnitTypeTable utt;
+   List<Integer> reservedPositions;
    UnitType workerType;
    UnitType baseType;
    UnitType barracksType;
    UnitType heavyType;
+   UnitType lightType;
+   UnitType ResourceType;
+   UnitType RangedType;
+   
+   int resourcesLeft;
    
    public waitWorkerSpam(UnitTypeTable a_utt) {
        this(a_utt, new AStarPathFinding());
@@ -55,6 +61,10 @@ public class waitWorkerSpam extends AbstractionLayerAI {
        baseType = utt.getUnitType("Base");
        barracksType = utt.getUnitType("Barracks");
        heavyType = utt.getUnitType("Heavy");
+       lightType = utt.getUnitType("Light");
+       ResourceType = utt.getUnitType("Resource");
+       RangedType = utt.getUnitType("Ranged");
+       
    }      
 
    public AI clone() {
@@ -68,31 +78,87 @@ public class waitWorkerSpam extends AbstractionLayerAI {
     	  PhysicalGameState pgs = gs.getPhysicalGameState();
           Player p = gs.getPlayer(player);
           PlayerAction pa = new PlayerAction();
+         reservedPositions = new LinkedList<Integer>();
+          
+          boolean nearestGot = false;
+          Unit enemyUnit = null;
+          
+          List<Unit> workers = new LinkedList<Unit>();
+          List<Unit> heavys = new LinkedList<Unit>();
+          List<Unit> lights = new LinkedList<Unit>();
+          List<Unit> bases = new LinkedList<Unit>();
+          List<Unit> barracksTypes = new LinkedList<Unit>();
+          List<Unit> resources = new LinkedList<Unit>();
+          List<Unit> rangers = new LinkedList<Unit>();
+          
+    	  resourcesLeft = p.getResources();
+    	  boolean sendToAttack;
           
           // behavior of bases:
-          for(Unit u:pgs.getUnits()) {
-              if (u.getType()==baseType && 
-                  u.getPlayer() == player && 
-                  gs.getActionAssignment(u)==null) {
-                  baseBehavior(u,p,pgs);
+          for(Unit u:pgs.getUnits()) 
+         {
+              if (u.getPlayer() == player && gs.getActionAssignment(u)==null) 
+              {
+            	  switch(u.getType().name)
+            	  {
+            	  case "Worker":
+            		  if(!nearestGot)
+            		  {
+            			  enemyUnit = getNearestEnemy(gs.getPhysicalGameState(), p, u);
+            			  nearestGot = true;
+            		  }
+            		  workers.add(u);
+            		  break;
+            		  
+            	  case "Base":
+            		  bases.add(u);
+            		  baseBehavior(u, p, pgs);
+            		  break;
+            		  
+            	  case "Barracks":
+            		  barracksTypes.add(u);
+            		  break;
+            		  
+            	  case "Heavy":
+            		  heavys.add(u);
+            		  break;
+            		  
+            	  case "Ranged":
+            		  rangers.add(u);
+            		  break;
+            		  
+            	  case "Resource":
+            		  resources.add(u);
+            		  break;
+            		  
+            	  case "light":
+            		  break;
+            		  
+            	  }
               }
           }
-
-          // behavior of workers:
-          List<Unit> workers = new LinkedList<Unit>();
-          for(Unit u:pgs.getUnits()) {
-              if (u.getType().canHarvest && 
-                  u.getPlayer() == player) {
-                  workers.add(u);
-              }        
-          }
-          workersBehavior(workers,p,gs);
-          
-                  
+           if(bases.size() < 1) 
+           {
+        	   buildBase(workers.get(0), p, pgs);
+        	   workers.remove(0);
+           }
+           if (workers.size() > 2) for(Unit u: workers) {attack(u,enemyUnit);}
+           else sendWorkersToMine((workers), pgs, p);
+           
+           
           return translateActions(player,gs);
       
     }
 
+    public void buildBase(Unit u, Player p, PhysicalGameState pgs) 
+    {
+    	 if (resourcesLeft >= baseType.cost) 
+    	 {
+             buildIfNotAlreadyBuilding(u,baseType,u.getX(),u.getY(),reservedPositions,p,pgs);
+             resourcesLeft -= baseType.cost;
+         }
+    }
+    
     public Unit getNearestEnemy(PhysicalGameState pgs, Player p, Unit u)
     {
     	 Unit closestEnemy = null;
@@ -133,6 +199,55 @@ public class waitWorkerSpam extends AbstractionLayerAI {
     	}
     }
     
+    public void sendWorkersToMine(List<Unit> workers, PhysicalGameState pgs, Player p)
+    {
+
+		for (Unit u : workers)
+		{
+            Unit closestBase = null;
+            Unit closestResource = null;
+            int closestDistance = 0;
+            for (Unit u2 : pgs.getUnits()) 
+            {
+                if (u2.getType().isResource) 
+                {
+                    int d = Math.abs(u2.getX() - u.getX()) + Math.abs(u2.getY() - u.getY());
+                    if (closestResource == null || d < closestDistance) 
+                    {
+                        closestResource = u2;
+                        closestDistance = d;
+                    }
+                }
+            }
+            closestDistance = 0;
+            for (Unit u2 : pgs.getUnits()) 
+            {
+                if (u2.getType().isStockpile && u2.getPlayer()==p.getID())
+                {
+                    int d = Math.abs(u2.getX() - u.getX()) + Math.abs(u2.getY() - u.getY());
+                    if (closestBase == null || d < closestDistance) 
+                    {
+                        closestBase = u2;
+                        closestDistance = d;
+                    }
+                }
+            }
+            if (closestResource != null && closestBase != null) 
+            {
+                AbstractAction aa = getAbstractAction(u);
+                if (aa instanceof Harvest) 
+                {
+                    Harvest h_aa = (Harvest)aa;
+                    if (h_aa.getTarget() != closestResource || h_aa.getBase()!=closestBase) harvest(u, closestResource, closestBase);
+                } else 
+                {
+                    harvest(u, closestResource, closestBase);
+                }
+            }
+		}
+	
+    }
+    
     public void workersBehavior(List<Unit> workers, Player p, GameState gs) 
     {
     	int workerThreshHold = 0;
@@ -148,51 +263,14 @@ public class waitWorkerSpam extends AbstractionLayerAI {
     	}
     	else
     	{
-    		for (Unit u : workers) {
-                Unit closestBase = null;
-                Unit closestResource = null;
-                int closestDistance = 0;
-                for (Unit u2 : pgs.getUnits()) {
-                    if (u2.getType().isResource) {
-                        int d = Math.abs(u2.getX() - u.getX()) + Math.abs(u2.getY() - u.getY());
-                        if (closestResource == null || d < closestDistance) {
-                            closestResource = u2;
-                            closestDistance = d;
-                        }
-                    }
-                }
-                closestDistance = 0;
-                for (Unit u2 : pgs.getUnits()) {
-                    if (u2.getType().isStockpile && u2.getPlayer()==p.getID()) {
-                        int d = Math.abs(u2.getX() - u.getX()) + Math.abs(u2.getY() - u.getY());
-                        if (closestBase == null || d < closestDistance) {
-                            closestBase = u2;
-                            closestDistance = d;
-                        }
-                    }
-                }
-                if (closestResource != null && closestBase != null) {
-                    AbstractAction aa = getAbstractAction(u);
-                    if (aa instanceof Harvest) {
-                        Harvest h_aa = (Harvest)aa;
-                        if (h_aa.getTarget() != closestResource || h_aa.getBase()!=closestBase) harvest(u, closestResource, closestBase);
-                    } else {
-                        harvest(u, closestResource, closestBase);
-                    }
-                }
-    		}
+    		
     	}
 	}
 
 
 	public void baseBehavior(Unit u, Player p, PhysicalGameState pgs) 
 	{
-		int pR = p.getResources();
-		while(pR >=workerType.cost) 
-		{
-			train(u, workerType); 
-			pR  = pR - workerType.cost;
-		}
+		if((resourcesLeft - workerType.cost) > 0) train(u,  workerType);
 	}
 
 
