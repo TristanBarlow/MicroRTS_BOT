@@ -151,9 +151,8 @@ public class waitWorkerSpam extends AbstractionLayerAI {
         	   workers.remove(0);
         	   }
            
-           if (workers.size() > 2)
+           if (workers.size() > 1)
            { 
-        	   enemyUnit = getNearestEnemy(gs.getPhysicalGameState(), p, workers.get(0));
         	   for(Unit u: workers)
         	   {
         		   attack(u,enemyUnit);
@@ -291,7 +290,11 @@ public class waitWorkerSpam extends AbstractionLayerAI {
 
 	public void baseBehavior(Unit u, Player p, PhysicalGameState pgs) 
 	{
-		if((resourcesLeft - workerType.cost) > 0) train(u,  workerType);
+		if(resourcesLeft >= workerType.cost )
+			{
+			train(u,  workerType);
+			resourcesLeft -= workerType.cost;
+			}
 	}
 
 
