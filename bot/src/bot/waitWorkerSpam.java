@@ -137,12 +137,21 @@ public class waitWorkerSpam extends AbstractionLayerAI {
             	  }
               }
           }
+          
            if(bases.size() < 1) 
            {
         	   buildBase(workers.get(0), p, pgs);
         	   workers.remove(0);
            }
-           if (workers.size() > 2) for(Unit u: workers) {attack(u,enemyUnit);}
+           if (workers.size() > 2)
+           { 
+        	   enemyUnit = getNearestEnemy(gs.getPhysicalGameState(), p, workers.get(0));
+        	   for(Unit u: workers)
+        	   {
+        		   attack(u,enemyUnit);
+        	   }
+        	   
+           }
            else sendWorkersToMine((workers), pgs, p);
            
            
