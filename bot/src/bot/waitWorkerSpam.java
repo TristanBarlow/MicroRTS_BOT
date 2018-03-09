@@ -99,14 +99,14 @@ public class waitWorkerSpam extends AbstractionLayerAI {
          {
               if (u.getPlayer() == player && gs.getActionAssignment(u)==null) 
               {
+         		  if(!nearestGot)
+        		  {
+        			  enemyUnit = getNearestEnemy(gs.getPhysicalGameState(), p, u);
+        			  nearestGot = true;
+        		  }
             	  switch(u.getType().name)
             	  {
             	  case "Worker":
-            		  if(!nearestGot)
-            		  {
-            			  enemyUnit = getNearestEnemy(gs.getPhysicalGameState(), p, u);
-            			  nearestGot = true;
-            		  }
             		  workers.add(u);
             		  break;
             		  
@@ -121,10 +121,12 @@ public class waitWorkerSpam extends AbstractionLayerAI {
             		  
             	  case "Heavy":
             		  heavys.add(u);
+            		  attack(u, enemyUnit);
             		  break;
             		  
             	  case "Ranged":
             		  rangers.add(u);
+            		  attack(u, enemyUnit);
             		  break;
             		  
             	  case "Resource":
@@ -132,11 +134,14 @@ public class waitWorkerSpam extends AbstractionLayerAI {
             		  break;
             		  
             	  case "light":
+            		  lights.add(u);
+            		  attack(u, enemyUnit);
             		  break;
             		  
             	  }
               }
           }
+          
    	   if(workers.size() >0)
    	   {   
            if(bases.size() < 1) 
@@ -157,7 +162,11 @@ public class waitWorkerSpam extends AbstractionLayerAI {
            }
            else sendWorkersToMine((workers), pgs, p);
    	   }
-           
+   	   
+        for(Unit u: bases)
+        {
+        	baseBehavior(u, p, pgs);
+        }
           return translateActions(player,gs);
       
     }
