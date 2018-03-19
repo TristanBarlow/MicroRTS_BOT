@@ -150,8 +150,10 @@ public class counterBot extends AbstractionLayerAI {
             	  }
               }
           }
-          
-        workersBehavior(workers, p, gs);  
+        if(workers.size()>0)
+        {
+        workersBehavior(workers, p, gs); 
+        }
         for(Unit u: bases)
         {
         	baseBehavior(u, p, pgs);
