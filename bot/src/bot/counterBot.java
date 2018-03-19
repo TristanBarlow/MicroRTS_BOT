@@ -38,6 +38,14 @@ public class counterBot extends AbstractionLayerAI {
    UnitType ResourceType;
    UnitType RangedType;
    
+   List<Unit> workers;
+   List<Unit> heavys;
+   List<Unit> lights;
+   List<Unit> bases;
+   List<Unit> barracksTypes;
+   List<Unit> resources;
+   List<Unit> rangers;
+   
    int resourcesLeft;
    
    public counterBot(UnitTypeTable a_utt) {
@@ -78,7 +86,8 @@ public class counterBot extends AbstractionLayerAI {
     	  PhysicalGameState pgs = gs.getPhysicalGameState();
           Player p = gs.getPlayer(player);
           PlayerAction pa = new PlayerAction();
-         reservedPositions = new LinkedList<Integer>();
+          reservedPositions = new LinkedList<Integer>();
+          
           
           boolean nearestGot = false;
           Unit enemyUnit = null;
@@ -142,26 +151,6 @@ public class counterBot extends AbstractionLayerAI {
               }
           }
           
-   	   if(workers.size() >0)
-   	   {   
-           if(bases.size() < 1) 
-           {
-
-        	   buildBase(workers.get(0), p, pgs);
-        	   workers.remove(0);
-        	   }
-           
-           if (workers.size() > 1)
-           { 
-        	   for(Unit u: workers)
-        	   {
-        		   attack(u,enemyUnit);
-        	   }
-        	   
-           }
-           else sendWorkersToMine((workers), pgs, p);
-   	   }
-   	   
         for(Unit u: bases)
         {
         	baseBehavior(u, p, pgs);
@@ -271,21 +260,21 @@ public class counterBot extends AbstractionLayerAI {
     
     public void workersBehavior(List<Unit> workers, Player p, GameState gs) 
     {
-    	int workerThreshHold = 0;
+    	int workerThreshHold = 2;
     	PhysicalGameState pgs = gs.getPhysicalGameState();
     	List<Unit> careTakers = new LinkedList<Unit>();
-    	List<Unit> AgroWorkers = new LinkedList<Unit>();
-    	
-    	if(workers.size()> workerThreshHold)
-    	{
-    		AgroWorkers = workers;
-    		allAttackNearest(workers,p ,gs );
-    		//for(Unit u:AgroWorkers) attackNearestEnemy(p, gs , u);
-    	}
-    	else
-    	{
-    		
-    	}
+    	List<Unit> AgroWorkers = new LinkedList<Unit>(workers);
+    	careTakers.add(AgroWorkers.remove(0));
+    	careTakers.add(AgroWorkers.remove(1));
+		if(AgroWorkers.size() > 0)
+		{
+		allAttackNearest(AgroWorkers,p ,gs );
+		}
+		if(bases.size() == 0)
+		{
+			buildBase(careTakers.remove(0), p, pgs);
+		}
+    	sendWorkersToMine(careTakers, pgs, p);
 	}
 
 
