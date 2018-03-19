@@ -272,12 +272,15 @@ public class counterBot extends AbstractionLayerAI {
 		{
 		allAttackNearest(AgroWorkers,p ,gs );
 		}
-		if(bases.size() == 0)
+		if(careTakers.size() > 0)
 		{
-			buildBase(careTakers.remove(0), p, pgs);
+			if(bases.size() == 0)
+			{
+				buildBase(careTakers.remove(0), p, pgs);
+			}
+	    	sendWorkersToMine(careTakers, pgs, p);
 		}
-    	sendWorkersToMine(careTakers, pgs, p);
-	}
+    }
 
 
 	public void baseBehavior(Unit u, Player p, PhysicalGameState pgs) 
