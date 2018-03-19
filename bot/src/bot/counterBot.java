@@ -265,10 +265,7 @@ public class counterBot extends AbstractionLayerAI {
     	List<Unit> careTakers = new LinkedList<Unit>();
     	List<Unit> AgroWorkers = new LinkedList<Unit>(workers);
     	careTakers.add(AgroWorkers.remove(0));
-		if(AgroWorkers.size() > 0)
-		{
 		allAttackNearest(AgroWorkers,p ,gs );
-		}
 		if(bases.size() == 0)
 		{
 			buildBase(careTakers.remove(0), p, pgs);
