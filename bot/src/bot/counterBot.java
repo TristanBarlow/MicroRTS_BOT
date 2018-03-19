@@ -274,10 +274,13 @@ public class counterBot extends AbstractionLayerAI {
 		}
 		if(careTakers.size() > 0)
 		{
-			if(bases.size() == 0)
+			if(bases.size() < 1)
 			{
 				buildBase(careTakers.remove(0), p, pgs);
 			}
+		}
+		if(careTakers.size()>0)
+		{
 	    	sendWorkersToMine(careTakers, pgs, p);
 		}
     }
