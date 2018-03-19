@@ -38,14 +38,6 @@ public class counterBot extends AbstractionLayerAI {
    UnitType ResourceType;
    UnitType RangedType;
    
-   List<Unit> workers;
-   List<Unit> heavys;
-   List<Unit> lights;
-   List<Unit> bases;
-   List<Unit> barracksTypes;
-   List<Unit> resources;
-   List<Unit> rangers;
-   
    int resourcesLeft;
    
    public counterBot(UnitTypeTable a_utt) {
@@ -152,7 +144,7 @@ public class counterBot extends AbstractionLayerAI {
           }
         if(workers.size()>0)
         {
-        workersBehavior(workers, p, gs); 
+        workersBehavior(workers, p, gs, bases); 
         }
         for(Unit u: bases)
         {
@@ -261,7 +253,7 @@ public class counterBot extends AbstractionLayerAI {
 	
     }
     
-    public void workersBehavior(List<Unit> workers, Player p, GameState gs) 
+    public void workersBehavior(List<Unit> workers, Player p, GameState gs,List<Unit> bases) 
     {
     	int workerThreshHold = 2;
     	PhysicalGameState pgs = gs.getPhysicalGameState();
@@ -274,7 +266,7 @@ public class counterBot extends AbstractionLayerAI {
 		}
 		if(careTakers.size() > 0)
 		{
-			if(bases.size() < 1)
+			if(bases.size() == 0)
 			{
 				buildBase(careTakers.remove(0), p, pgs);
 			}
