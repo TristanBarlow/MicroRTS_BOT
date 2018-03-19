@@ -106,7 +106,7 @@ public class counterBot extends AbstractionLayerAI {
           // behavior of bases:
           for(Unit u:pgs.getUnits()) 
          {
-              if (u.getPlayer() == player && gs.getActionAssignment(u)==null) 
+              if (u.getPlayer() == player) 
               {
          		  if(!nearestGot)
         		  {
@@ -265,7 +265,6 @@ public class counterBot extends AbstractionLayerAI {
     	List<Unit> careTakers = new LinkedList<Unit>();
     	List<Unit> AgroWorkers = new LinkedList<Unit>(workers);
     	careTakers.add(AgroWorkers.remove(0));
-    	careTakers.add(AgroWorkers.remove(1));
 		if(AgroWorkers.size() > 0)
 		{
 		allAttackNearest(AgroWorkers,p ,gs );
