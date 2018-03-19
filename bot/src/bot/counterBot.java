@@ -25,7 +25,7 @@ import rts.units.*;
  *
  * @author santi
  */
-public class waitWorkerSpam extends AbstractionLayerAI {    
+public class counterBot extends AbstractionLayerAI {    
 	
   Random r = new Random();
    protected UnitTypeTable utt;
@@ -40,12 +40,12 @@ public class waitWorkerSpam extends AbstractionLayerAI {
    
    int resourcesLeft;
    
-   public waitWorkerSpam(UnitTypeTable a_utt) {
+   public counterBot(UnitTypeTable a_utt) {
        this(a_utt, new AStarPathFinding());
    }
    
    
-   public waitWorkerSpam(UnitTypeTable a_utt, PathFinding a_pf) {
+   public counterBot(UnitTypeTable a_utt, PathFinding a_pf) {
        super(a_pf);
        reset(a_utt);
    }
@@ -68,7 +68,7 @@ public class waitWorkerSpam extends AbstractionLayerAI {
    }      
 
    public AI clone() {
-       return new waitWorkerSpam(utt, pf);
+       return new counterBot(utt, pf);
    }
     
     @Override
