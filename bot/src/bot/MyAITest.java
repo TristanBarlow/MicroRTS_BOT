@@ -9,9 +9,10 @@ import ai.abstraction.AbstractAction;
 import ai.abstraction.AbstractionLayerAI;
 import ai.abstraction.Harvest;
 
-import ai.abstraction.pathfinding.AStarPathFinding;
-import ai.core.AI;
 import ai.abstraction.pathfinding.PathFinding;
+//import ai.abstraction.pathfinding.AStarPathFinding;
+import ai.core.AI;
+import ai.abstraction.pathfinding.GreedyPathFinding;
 import ai.core.ParameterSpecification;
 
 import java.util.ArrayList;
@@ -40,7 +41,7 @@ public class MyAITest extends AbstractionLayerAI {
     // If we have a worker: do this if needed: build base, harvest resources
     
     public MyAITest(UnitTypeTable a_utt) {
-        this(a_utt, new AStarPathFinding());
+        this(a_utt, new GreedyPathFinding());
     }
 
         
@@ -84,10 +85,12 @@ public class MyAITest extends AbstractionLayerAI {
 
         // behavior of melee units:
         for(Unit u:pgs.getUnits()) {
+        	
             if (u.getType().canAttack && !u.getType().canHarvest && 
                 u.getPlayer() == player && 
                 gs.getActionAssignment(u)==null) {
                 meleeUnitBehavior(u,p,gs);
+
             }        
         }
 
@@ -99,8 +102,11 @@ public class MyAITest extends AbstractionLayerAI {
                 workers.add(u);
             }        
         }
-        workersBehavior(workers,p,gs);
         
+     // add random movement so they dont get stuck on nowheretorun
+        workersBehavior(workers,p,gs);
+
+
                 
         return translateActions(player,gs);
     }
@@ -120,6 +126,7 @@ public class MyAITest extends AbstractionLayerAI {
                 if (closestEnemy==null || d<closestDistance) {
                     closestEnemy = u2;
                     closestDistance = d;
+
                 }
             }
         }
@@ -200,7 +207,7 @@ public class MyAITest extends AbstractionLayerAI {
     {
         List<ParameterSpecification> parameters = new ArrayList<>();
         
-        parameters.add(new ParameterSpecification("PathFinding", PathFinding.class, new AStarPathFinding()));
+        parameters.add(new ParameterSpecification("PathFinding", PathFinding.class, new GreedyPathFinding()));
 
         return parameters;
     }
