@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
+import ai.abstraction.pathfinding.GreedyPathFinding;
 import rts.GameState;
 import rts.PhysicalGameState;
 import rts.Player;
@@ -41,7 +42,7 @@ public class counterBot extends AbstractionLayerAI {
    int resourcesLeft;
    
    public counterBot(UnitTypeTable a_utt) {
-       this(a_utt, new AStarPathFinding());
+       this(a_utt, new GreedyPathFinding());
    }
    
    
