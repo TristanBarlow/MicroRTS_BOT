@@ -3,7 +3,8 @@
  * and open the template in the editor.
  */
 package bot;
-
+ 
+U R BOT!!!
 
 import ai.abstraction.AbstractAction;
 import ai.abstraction.AbstractionLayerAI;
