@@ -15,9 +15,11 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
+import ai.abstraction.pathfinding.GreedyPathFinding;
 import rts.GameState;
 import rts.PhysicalGameState;
 import rts.Player;
+import ai.abstraction.pathfinding.FloodFillPathFinding;
 import rts.PlayerAction;
 import rts.units.*;
 
@@ -25,7 +27,7 @@ import rts.units.*;
  *
  * @author santi
  */
-public class waitWorkerSpam extends AbstractionLayerAI {    
+public class counterBot extends AbstractionLayerAI {    
 	
   Random r = new Random();
    protected UnitTypeTable utt;
@@ -40,12 +42,12 @@ public class waitWorkerSpam extends AbstractionLayerAI {
    
    int resourcesLeft;
    
-   public waitWorkerSpam(UnitTypeTable a_utt) {
-       this(a_utt, new AStarPathFinding());
+   public counterBot(UnitTypeTable a_utt) {
+       this(a_utt, new FloodFillPathFinding());
    }
    
    
-   public waitWorkerSpam(UnitTypeTable a_utt, PathFinding a_pf) {
+   public counterBot(UnitTypeTable a_utt, PathFinding a_pf) {
        super(a_pf);
        reset(a_utt);
    }
@@ -68,7 +70,7 @@ public class waitWorkerSpam extends AbstractionLayerAI {
    }      
 
    public AI clone() {
-       return new waitWorkerSpam(utt, pf);
+       return new counterBot(utt, pf);
    }
     
     @Override
@@ -78,7 +80,8 @@ public class waitWorkerSpam extends AbstractionLayerAI {
     	  PhysicalGameState pgs = gs.getPhysicalGameState();
           Player p = gs.getPlayer(player);
           PlayerAction pa = new PlayerAction();
-         reservedPositions = new LinkedList<Integer>();
+          reservedPositions = new LinkedList<Integer>();
+          
           
           boolean nearestGot = false;
           Unit enemyUnit = null;
@@ -97,7 +100,7 @@ public class waitWorkerSpam extends AbstractionLayerAI {
           // behavior of bases:
           for(Unit u:pgs.getUnits()) 
          {
-              if (u.getPlayer() == player && gs.getActionAssignment(u)==null) 
+              if (u.getPlayer() == player) 
               {
          		  if(!nearestGot)
         		  {
@@ -141,27 +144,10 @@ public class waitWorkerSpam extends AbstractionLayerAI {
             	  }
               }
           }
-          
-   	   if(workers.size() >0)
-   	   {   
-           if(bases.size() < 1) 
-           {
-
-        	   buildBase(workers.get(0), p, pgs);
-        	   workers.remove(0);
-        	   }
-           
-           if (workers.size() > 1)
-           { 
-        	   for(Unit u: workers)
-        	   {
-        		   attack(u,enemyUnit);
-        	   }
-        	   
-           }
-           else sendWorkersToMine((workers), pgs, p);
-   	   }
-   	   
+        if(workers.size()>0)
+        {
+        workersBehavior(workers, p, gs, bases); 
+        }
         for(Unit u: bases)
         {
         	baseBehavior(u, p, pgs);
@@ -269,24 +255,29 @@ public class waitWorkerSpam extends AbstractionLayerAI {
 	
     }
     
-    public void workersBehavior(List<Unit> workers, Player p, GameState gs) 
+    public void workersBehavior(List<Unit> workers, Player p, GameState gs,List<Unit> bases) 
     {
-    	int workerThreshHold = 0;
+    	int workerThreshHold = 2;
     	PhysicalGameState pgs = gs.getPhysicalGameState();
     	List<Unit> careTakers = new LinkedList<Unit>();
-    	List<Unit> AgroWorkers = new LinkedList<Unit>();
-    	
-    	if(workers.size()> workerThreshHold)
-    	{
-    		AgroWorkers = workers;
-    		allAttackNearest(workers,p ,gs );
-    		//for(Unit u:AgroWorkers) attackNearestEnemy(p, gs , u);
-    	}
-    	else
-    	{
-    		
-    	}
-	}
+    	List<Unit> AgroWorkers = new LinkedList<Unit>(workers);
+    	careTakers.add(AgroWorkers.remove(0));
+		if(AgroWorkers.size() > 0)
+		{
+		allAttackNearest(AgroWorkers,p ,gs );
+		}
+		if(careTakers.size() > 0)
+		{
+			if(bases.size() == 0)
+			{
+				buildBase(careTakers.remove(0), p, pgs);
+			}
+		}
+		if(careTakers.size()>0)
+		{
+	    	sendWorkersToMine(careTakers, pgs, p);
+		}
+    }
 
 
 	public void baseBehavior(Unit u, Player p, PhysicalGameState pgs) 
