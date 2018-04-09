@@ -10,7 +10,7 @@ import ai.abstraction.AbstractionLayerAI;
 import ai.abstraction.Harvest;
 
 import ai.abstraction.pathfinding.PathFinding;
-//import ai.abstraction.pathfinding.AStarPathFinding;
+import ai.abstraction.pathfinding.AStarPathFinding;
 import ai.core.AI;
 import ai.abstraction.pathfinding.GreedyPathFinding;
 import ai.core.ParameterSpecification;
@@ -30,7 +30,7 @@ import rts.units.*;
  *
  * @author santi
  */
-public class MyAITest extends AbstractionLayerAI {   
+public class GreedyWorkerRush extends AbstractionLayerAI {   
 	Random r = new Random();
     protected UnitTypeTable utt;
     UnitType workerType;
@@ -40,12 +40,12 @@ public class MyAITest extends AbstractionLayerAI {
     // If we have a base: train workers non-stop
     // If we have a worker: do this if needed: build base, harvest resources
     
-    public MyAITest(UnitTypeTable a_utt) {
+    public GreedyWorkerRush(UnitTypeTable a_utt) {
         this(a_utt, new GreedyPathFinding());
     }
 
         
-    public MyAITest(UnitTypeTable a_utt, PathFinding a_pf) {
+    public GreedyWorkerRush(UnitTypeTable a_utt, PathFinding a_pf) {
         super(a_pf);
         reset(a_utt);
     }
@@ -65,7 +65,7 @@ public class MyAITest extends AbstractionLayerAI {
     
     
     public AI clone() {
-        return new MyAITest(utt, pf);
+        return new GreedyWorkerRush(utt, pf);
     }
     
     public PlayerAction getAction(int player, GameState gs) {
