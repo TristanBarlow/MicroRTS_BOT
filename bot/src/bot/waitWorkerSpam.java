@@ -27,7 +27,7 @@ import rts.units.*;
  *
  * @author santi
  */
-public class counterBot extends AbstractionLayerAI {    
+public class waitWorkerSpam extends AbstractionLayerAI {    
 	
   Random r = new Random();
    protected UnitTypeTable utt;
@@ -42,12 +42,12 @@ public class counterBot extends AbstractionLayerAI {
    
    int resourcesLeft;
    
-   public counterBot(UnitTypeTable a_utt) {
+   public waitWorkerSpam(UnitTypeTable a_utt) {
        this(a_utt, new FloodFillPathFinding());
    }
    
    
-   public counterBot(UnitTypeTable a_utt, PathFinding a_pf) {
+   public waitWorkerSpam(UnitTypeTable a_utt, PathFinding a_pf) {
        super(a_pf);
        reset(a_utt);
    }
@@ -70,7 +70,7 @@ public class counterBot extends AbstractionLayerAI {
    }      
 
    public AI clone() {
-       return new counterBot(utt, pf);
+       return new waitWorkerSpam(utt, pf);
    }
     
     @Override
