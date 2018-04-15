@@ -80,7 +80,7 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
     		computeDuringOneGameFrame();
     		return getBestActionSoFar();
     	}
-    	else return new PlayerAction();
+    	else return BaseAI.getAction(MaxPlayer, StartGameState);
     }
 
 	@Override
@@ -117,7 +117,7 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
 	            	SimulateGame(gs2, gs2.getTime() + LookaHead );
 	            	float Eval  = EvaluationMethod.evaluate(MaxPlayer, MinPlayer, gs2);
 	            	node.Update(Eval);
-	            	node = node.ParentNode;
+	            	node = node.ParentNode;s
 	            }
     			nPlayouts++;
     		}
@@ -129,7 +129,7 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
 	{
         if (root.ChildNodes.size() < 1) 
         {
-            return new PlayerAction();
+            return BaseAI.getAction(MaxPlayer, StartGameState);
         }
         else 
         { 
