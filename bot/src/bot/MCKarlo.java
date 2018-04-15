@@ -117,7 +117,7 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
 	            	SimulateGame(gs2, gs2.getTime() + LookaHead );
 	            	float Eval  = EvaluationMethod.evaluate(MaxPlayer, MinPlayer, gs2);
 	            	node.Update(Eval);
-	            	node = node.ParentNode;s
+	            	node = node.ParentNode;
 	            }
     			nPlayouts++;
     		}
