@@ -10,6 +10,7 @@ import ai.RandomBiasedAI;
 import ai.abstraction.WorkerRush;
 import ai.abstraction.pathfinding.BFSPathFinding;
 import ai.mcts.naivemcts.NaiveMCTS;
+import ai.mcts.uct.UCT;
 import bot.*;
 import gui.PhysicalGameStatePanel;
 import java.io.OutputStreamWriter;
@@ -19,6 +20,8 @@ import rts.PhysicalGameState;
 import rts.PlayerAction;
 import rts.units.UnitTypeTable;
 import util.XMLWriter;
+import ai.portfolio.*;
+import ai.minimax.*;
 
 /**
  *
@@ -27,7 +30,7 @@ import util.XMLWriter;
 public class GameVisualSimulationTest {
     public static void main(String args[]) throws Exception {
         UnitTypeTable utt = new UnitTypeTable();
-        PhysicalGameState pgs = PhysicalGameState.load("../microrts/maps/16x16/basesWorkers16x16.xml", utt);
+        PhysicalGameState pgs = PhysicalGameState.load("../microrts/maps/NoWhereToRun9x8.xml", utt);
 //        PhysicalGameState pgs = MapGenerator.basesWorkers8x8Obstacle();
 
         GameState gs = new GameState(pgs, utt);
@@ -35,9 +38,8 @@ public class GameVisualSimulationTest {
         int PERIOD = 20;
         boolean gameover = false;
         
-        //AI ai1 = new WorkerRush(utt, new BFSPathFinding());
-        AI ai1 = new waitWorkerSpam(utt);
-        AI ai2 = new RandomBiasedAI();
+        AI ai1 = new MCKarlo(utt);
+        AI ai2 = new UCT(utt);
 
         JFrame w = PhysicalGameStatePanel.newVisualizer(gs,640,640,false,PhysicalGameStatePanel.COLORSCHEME_BLACK);
 //        JFrame w = PhysicalGameStatePanel.newVisualizer(gs,640,640,false,PhysicalGameStatePanel.COLORSCHEME_WHITE);
