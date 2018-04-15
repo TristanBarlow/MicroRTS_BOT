@@ -11,9 +11,9 @@ import rts.units.*;
 
 
 public class MCEvaluation extends EvaluationFunction {    
-    public static float ResourceValue = 100;
-    public static float UnitValue = 0;
-    public static float BarracksValue = 100;
+    public static float ResourceValue = 60;
+    public static float UnitValue = 10;
+    public static float BarracksValue = 1000;
     public static float BaseValue = 0;
     UnitType workerType;
     UnitType baseType;

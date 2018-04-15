@@ -52,7 +52,7 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
 	MCNode root = null;
 	GameState StartGameState;
 
-	boolean ComputationComplete = false;
+	boolean ComputationComplete = true;
 	
 	PlayerAction FinalAction;
 	ArrayList<GameState> States;
@@ -65,7 +65,7 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
     public MCKarlo(int available_time, int MaxPlayouts, int breadth, int depth, AI AIPolicy, EvaluationFunction a_ef) 
     {
         super(available_time, MaxPlayouts);
-        TimeBudget = available_time;
+        TimeBudget = available_time-10;
         Playouts = MaxPlayouts;
         Depth = depth;
         Breadth =breadth;
@@ -102,29 +102,32 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
 	        int nPlayouts = 0;
 	        int numberOfNodes = 0;
 	        long cutOffTime = start + TimeBudget;
-	        if (TimeBudget<=0) cutOffTime = 0;
-	        while(nPlayouts < root.UntriedMoves.size() && nPlayouts < Breadth) 
+	        int maxIter =1000;
+	        while(true) 
 	        {
 	            if (cutOffTime >0 && System.currentTimeMillis() > cutOffTime) break;
     			MCNode node = root;
-	            while(node.Depth< Depth)
-	            {
-	            	node = node.AddChild(Depth);
-	            	numberOfNodes ++;
-	            }
-	            float Eval = 0;
+    			
+    			while(node.ChildNodes.size() > 0 && node.UntriedMoves.size() < 1)
+    			{
+    				node = node.GetChild();
+    			}
+    			if(node.UntriedMoves.size() > 0)
+    			{
+    				node = node.AddChild(Depth);
+    			}
 	            while(node != null)
 	            {
 	            	GameState gs2 = node.GSCopy.clone();
 	            	SimulateGame(gs2, gs2.getTime() + 100 );
-	            	Eval  =+ EvaluationMethod.evaluate(MaxPlayer, MinPlayer, gs2);
+	            	float Eval  = EvaluationMethod.evaluate(MaxPlayer, MinPlayer, gs2);
 	            	node.Update(Eval);
 	            	node = node.ParentNode;
 	            }
+	            root.GetMostVisitedNode();
     			nPlayouts++;
     		}
-	        System.out.println(numberOfNodes);
-	         TotalPlayouts++;  
+
         }
 
 	@Override
@@ -134,7 +137,11 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
         {
             return new PlayerAction();
         }
-        else return root.GetBestMove();
+        else 
+        { 
+        	return root.ChildNodes.get(0).Move;
+        }
+        
 	}
 
 	@Override
