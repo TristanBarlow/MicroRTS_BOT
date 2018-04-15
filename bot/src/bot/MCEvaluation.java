@@ -11,10 +11,14 @@ import rts.units.*;
 
 
 public class MCEvaluation extends EvaluationFunction {    
-    public static float ResourceValue = 60;
-    public static float UnitValue = 10;
-    public static float BarracksValue = 1000;
+    public static float ResourceValue = 0;
+    public static float BarracksValue = 0;
+    public static float ResourceInWorker = 0;
     public static float BaseValue = 0;
+    public static float RangedValue = 0;
+    public static float WorkerValue = 0;
+    public static float HeavyValue =0;
+    public static float LightValue =0;
     UnitType workerType;
     UnitType baseType;
     UnitType barracksType;
@@ -51,11 +55,13 @@ public class MCEvaluation extends EvaluationFunction {
         {
             if (u.getPlayer()==player) 
             {
-            	if(u.getType() == workerType) { score+= UnitValue; break;}
+            	score += u.getResources()*ResourceInWorker;
+            	if(u.getType() == workerType) { score+= WorkerValue; break;}
             	if(u.getType() == barracksType) {score+= BarracksValue;break;}
-            	if(u.getType() == lightType) {score+= UnitValue;break;}
-            	if(u.getType() == RangedType) { score+= UnitValue;break;}
+            	if(u.getType() == lightType) {score+= LightValue;break;}
+            	if(u.getType() == RangedType) { score+= RangedValue;break;}
             	if(u.getType() == baseType) { score+= BaseValue;break;}
+            	if(u.getType() == heavyType) { score+=HeavyValue ;break;}
             }
         }
         return score;

@@ -46,7 +46,7 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
 	int MaxPlayer =0;
 	int RunsThisMove = 0;
 	int TimeBudget = 0;
-	int Playouts = 0;
+	int LookaHead = 100;
 	int TotalPlayouts = 0;
 	
 	MCNode root = null;
@@ -65,14 +65,10 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
     public MCKarlo(int available_time, int MaxPlayouts, int breadth, int depth, AI AIPolicy, EvaluationFunction a_ef) 
     {
         super(available_time, MaxPlayouts);
-        TimeBudget = available_time-10;
-        Playouts = MaxPlayouts;
         Depth = depth;
         Breadth =breadth;
         BaseAI = AIPolicy;
         EvaluationMethod = a_ef;
-        States = new ArrayList<GameState>();
-        GoodActions = new ArrayList<PlayerAction>();
 
     }
     
@@ -92,7 +88,6 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
 	{
 		StartGameState = gs;
 		root = new MCNode(player, gs.clone(), Depth);
-		Playouts =0;
 	}
 
 	@Override
@@ -101,7 +96,7 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
 		 	long start = System.currentTimeMillis();
 	        int nPlayouts = 0;
 	        int numberOfNodes = 0;
-	        long cutOffTime = start + TimeBudget;
+	        long cutOffTime = start +  TIME_BUDGET;
 	        int maxIter =1000;
 	        while(true) 
 	        {
@@ -119,12 +114,11 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
 	            while(node != null)
 	            {
 	            	GameState gs2 = node.GSCopy.clone();
-	            	SimulateGame(gs2, gs2.getTime() + 100 );
+	            	SimulateGame(gs2, gs2.getTime() + LookaHead );
 	            	float Eval  = EvaluationMethod.evaluate(MaxPlayer, MinPlayer, gs2);
 	            	node.Update(Eval);
 	            	node = node.ParentNode;
 	            }
-	            root.GetMostVisitedNode();
     			nPlayouts++;
     		}
 
@@ -139,7 +133,8 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
         }
         else 
         { 
-        	return root.ChildNodes.get(0).Move;
+            
+        	return root.GetMostVisitedNode().Move;
         }
         
 	}
@@ -156,7 +151,7 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
 	public AI clone()
 	{
 		// TODO Auto-generated method stub
-		return new MCKarlo(TimeBudget, Playouts, Breadth, Depth, BaseAI, EvaluationMethod);
+		return new MCKarlo(TimeBudget, -1, Breadth, Depth, BaseAI, EvaluationMethod);
 	}
 	
 	@Override
@@ -172,11 +167,18 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
         boolean gameover = false;
 
         do{
-            if (gs.isComplete()) {
+            if (gs.isComplete()) 
+            {
                 gameover = gs.cycle();
-            } else {
-                gs.issue(BaseAI.getAction(0, gs));
-                gs.issue(BaseAI.getAction(1, gs));
+            } 
+            else 
+            {
+            	PlayerAction pa = new PlayerAction();
+                pa.fillWithNones(gs, MaxPlayer, 10);
+                gs.issue(pa);
+                PlayerAction pa2 = new PlayerAction();
+                pa2.fillWithNones(gs, MinPlayer, 10);
+                gs.issue(pa2);
             }
         }while(!gameover && gs.getTime()<time);   
 		
