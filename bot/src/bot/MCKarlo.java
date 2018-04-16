@@ -108,9 +108,8 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
 	        boolean Compute = true;
 	        while(Compute) 
 	        {
-	            System.out.println(lastIterationTime);
 	        	long currentTime = System.currentTimeMillis();
-	            if (cutOffTime >0 && currentTime > cutOffTime) break;
+	            if (cutOffTime >0 && currentTime + lastIterationTime > cutOffTime) break;
     			MCNode node = root;
     			
     			while(node.ChildNodes.size() > 0  && node.UntriedMoves.size() < 1)
@@ -130,8 +129,8 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
 	            	node.Update(Eval);
 	            	node = node.ParentNode;
 	            }
+	            lastIterationTime = System.currentTimeMillis() - currentTime;
 	            root.GetMostVisitedNode();
-	            lastIterationTime = System.currentTimeMillis()- currentTime;
     			nPlayouts++;
     		}
 
