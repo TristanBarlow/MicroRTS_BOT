@@ -26,6 +26,7 @@ import ai.abstraction.*;
 import ai.abstraction.pathfinding.GreedyPathFinding;
 import ai.RandomAI;
 import java.util.Map;
+import ai.abstraction.cRush.*;
 
 
 /**
@@ -61,7 +62,7 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
     public MCKarlo(UnitTypeTable utt) 
     {
         this(100,-1, 50,20, new RandomBiasedAI(utt), new SimpleSqrtEvaluationFunction3());
-        BigMapPolicy = new RangedRush(utt,new GreedyPathFinding());
+        BigMapPolicy = new CRush_V2(utt,new GreedyPathFinding());
     }
 
     public MCKarlo(int available_time, int MaxPlayouts, int breadth, int depth, AI AIPolicy, EvaluationFunction a_ef) 
