@@ -60,8 +60,8 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
 	
     public MCKarlo(UnitTypeTable utt) 
     {
-        this(100,-1, 10,10, new RandomBiasedAI(utt), new SimpleSqrtEvaluationFunction3());
-        BigMapPolicy = new WorkerRush(utt,new GreedyPathFinding());
+        this(100,-1, 10,20, new RandomBiasedAI(utt), new SimpleSqrtEvaluationFunction3());
+        BigMapPolicy = new RangedRush(utt,new GreedyPathFinding());
     }
 
     public MCKarlo(int available_time, int MaxPlayouts, int breadth, int depth, AI AIPolicy, EvaluationFunction a_ef) 
@@ -94,7 +94,7 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
 	public void startNewComputation(int player, GameState gs) throws Exception
 	{
 		StartGameState = gs;
-		root = new MCNode(player, gs.clone(), Depth);
+		root = new MCNode(player, gs.clone(), Depth, Breadth, 0);
 	}
 
 	@Override
@@ -105,20 +105,22 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
 	        int numberOfNodes = 0;
 	        long cutOffTime = start +  TIME_BUDGET;
 	        long lastIterationTime = 0;
-	        while(true) 
+	        boolean Compute = true;
+	        while(Compute) 
 	        {
+	            System.out.println(lastIterationTime);
 	        	long currentTime = System.currentTimeMillis();
-	           // if (cutOffTime >0 && currentTime + lastIterationTime > cutOffTime) break;
+	            if (cutOffTime >0 && currentTime > cutOffTime) break;
     			MCNode node = root;
     			
-    			while(node.ChildNodes.size() > 0 && node.UntriedMoves.size() < 1)
+    			while(node.ChildNodes.size() > 0  && node.UntriedMoves.size() < 1)
     			{
     				node = node.GetChild();
-    				numberOfNodes = 0;
+    				numberOfNodes++;
     			}
     			if(node.UntriedMoves.size() > 0)
     			{
-    				node = node.AddChild(Depth);
+    				node = node.AddChild(Depth, cutOffTime);
     			}
 	            while(node != null)
 	            {
@@ -184,12 +186,8 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
             } 
             else 
             {
-            	PlayerAction pa = new PlayerAction();
-                pa.fillWithNones(gs, MaxPlayer, 10);
-                gs.issue(pa);
-                PlayerAction pa2 = new PlayerAction();
-                pa2.fillWithNones(gs, MinPlayer, 10);
-                gs.issue(pa2);
+                gs.issue(BaseAI.getAction(MaxPlayer, gs));
+                gs.issue(BaseAI.getAction(MinPlayer, gs));
             }
         }while(!gameover && gs.getTime()<time);   
 		

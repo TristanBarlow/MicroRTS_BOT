@@ -35,51 +35,73 @@ public class MCNode
    public float wins =0;
    public int visits = 0;
    public int Depth = 0;
+   public int Breadth =0;
    public List<PlayerAction> UntriedMoves;
    public PlayerActionGenerator PAG = null;
    public int Player = 0;
    public int MinPlayer =1;
    public int TriedMoves = 0;
+   public long CutOffTime = 0;
    public boolean EndGame = false;
    public float AverageEvaluation = 0;
    public GameState GSCopy;
    
-   public MCNode(int player, GameState gs, int MAXDEPTH)throws Exception
+   public MCNode(int player, GameState gs, int MAXDEPTH, int breadth, int cutOffTime)throws Exception
    {
+	   	if(Player == 1)MinPlayer = 0;
 		   Player = player;
 		   GSCopy = gs;
-		   while(!gs.canExecuteAnyAction(player) && !GSCopy .gameover() )
+		   Breadth = breadth;
+		   CutOffTime = cutOffTime;
+		   while(!gs.canExecuteAnyAction(player) && !GSCopy.gameover() )
 		   {
 			   gs.cycle();
 		   }
 		   if(!gs.gameover()&& gs.winner() == -1 )
 		   {
 			   
-			   UntriedMoves =  gs.getPlayerActions(player);
+			   PAG = new PlayerActionGenerator(gs, player);
+			   PAG.randomizeOrder();
+			   UntriedMoves = new ArrayList<PlayerAction>();
+			   while(UntriedMoves.size()< Breadth)
+			   {
+				   UntriedMoves.add(PAG.getNextAction(cutOffTime));
+			   }
 		   }
-		   if(gs.winner() != player)
+		   else
 		   {
-			   UntriedMoves =  gs.getPlayerActions(player);
 			   EndGame = true;
 		   }
 		  // while(UntriedMoves.size()>0 && ChildNodes.size() < MAXBREADTH) AddChild(MAXDEPTH);
    }
    
-   public MCNode(int player, PlayerAction move, GameState gs, MCNode parent, int depth, int MAXDEPTH) throws Exception
+   public MCNode(int player, PlayerAction move, GameState gs, MCNode parent, int depth, int MAXDEPTH, int breadth, long cutOffTime) throws Exception
    {
 	   if(Player == 1)MinPlayer = 0;
 	   Move = move;
 	   Depth = depth+1;
 	   ParentNode = parent;
 	   Player = player;
+	   Breadth = breadth;
 	   GSCopy = gs;
+	   CutOffTime = cutOffTime;
 	   while(!GSCopy.canExecuteAnyAction(player) && !GSCopy.gameover() )
 	   {
 		   GSCopy.cycle();
 	   }
 	   if(!GSCopy.gameover()&& GSCopy.winner() == -1 )
 	   {
-		   UntriedMoves =  GSCopy.getPlayerActions(player);
+		   PAG = new PlayerActionGenerator(gs, player);
+		   PAG.randomizeOrder();
+		   UntriedMoves = new ArrayList<PlayerAction>();
+		   while(UntriedMoves.size()< Breadth)
+		   {
+			   UntriedMoves.add(PAG.getNextAction(CutOffTime));
+		   }
+	   }
+	   else
+	   {
+		   EndGame = true;
 	   }
    }
    
@@ -95,18 +117,24 @@ public class MCNode
 	   return c;
    }
    
-   public MCNode AddChild(int MAXDEPTH) throws Exception
+   public MCNode AddChild(int MAXDEPTH, long cuttOfTime) throws Exception
    {
-	   PlayerAction move = GetRandomAction();
-	   if(move != null && Depth <= MAXDEPTH)
+	   
+	   CutOffTime = cuttOfTime;
+	   if(UntriedMoves.size()>0 &&  Depth <= MAXDEPTH)
 	   {
-	   GameState gs = GSCopy.cloneIssue(move);
-	   MCNode n = new MCNode(Player, move.clone(), gs.clone(), this , Depth, MAXDEPTH);
-	   TriedMoves++;
-	   ChildNodes.add(n);
-	   return n;
+		   PlayerAction move = GetRandomAction();
+		   if(move != null)
+		   {
+		   GameState gs = GSCopy.cloneIssue(move);
+		   MCNode n = new MCNode(Player, move, gs.clone(), this , Depth, MAXDEPTH, Breadth,  CutOffTime);
+		   TriedMoves++;
+		   ChildNodes.add(n);
+		   return n;
+		   }
 	   }
-	   else {return this;}
+	   return null;
+
    }
    
    public void Update(float result)
@@ -147,8 +175,7 @@ public class MCNode
    
    public PlayerAction GetRandomAction()
    {
-	   Random r = new Random();
-	   return UntriedMoves.remove((r.nextInt(UntriedMoves.size())));
+	   return UntriedMoves.remove(0);
    }
    public int GetVisits()
    {
