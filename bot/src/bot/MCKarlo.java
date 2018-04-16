@@ -56,10 +56,12 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
 	
 	PlayerAction FinalAction;
 	ArrayList<GameState> States;
+	AI BigMapPolicy;
 	
     public MCKarlo(UnitTypeTable utt) 
     {
         this(100,-1, 10,10, new RandomBiasedAI(utt), new SimpleSqrtEvaluationFunction3());
+        BigMapPolicy = new WorkerRush(utt,new GreedyPathFinding());
     }
 
     public MCKarlo(int available_time, int MaxPlayouts, int breadth, int depth, AI AIPolicy, EvaluationFunction a_ef) 
@@ -74,6 +76,11 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
     
     public final PlayerAction getAction(int player, GameState gs) throws Exception
     {	
+
+        if ((gs.getPhysicalGameState().getWidth() *gs.getPhysicalGameState().getHeight()) >= 144) {
+           return BigMapPolicy.getAction(player, gs);
+        }
+
     	if(gs.canExecuteAnyAction(player))
     	{
     		startNewComputation(player, gs);
@@ -97,8 +104,8 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
 	        int nPlayouts = 0;
 	        int numberOfNodes = 0;
 	        long cutOffTime = start +  TIME_BUDGET;
-	        int maxIter =1000;
-	        while(true) 
+	        int maxIter =100;
+	        while(maxIter > nPlayouts) 
 	        {
 	            if (cutOffTime >0 && System.currentTimeMillis() > cutOffTime) break;
     			MCNode node = root;
