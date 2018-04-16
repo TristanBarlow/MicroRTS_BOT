@@ -11,14 +11,15 @@ import rts.units.*;
 
 
 public class MCEvaluation extends EvaluationFunction {    
-    public static float ResourceValue = 0;
-    public static float BarracksValue = 0;
-    public static float ResourceInWorker = 0;
-    public static float BaseValue = 0;
-    public static float RangedValue = 0;
-    public static float WorkerValue = 0;
-    public static float HeavyValue =0;
-    public static float LightValue =0;
+    public static float ResourceValue = 20;
+    public static float BarracksValue = 200;
+    public static float ResourceInWorker = 10;
+    public static float BaseValue = 50;
+    public static float RangedValue = 50;
+    public static float WorkerValue = 10;
+    public static float HeavyValue =100;
+    public static float LightValue =100;
+    public static float UnitBonus = 40;
     UnitType workerType;
     UnitType baseType;
     UnitType barracksType;
@@ -41,29 +42,25 @@ public class MCEvaluation extends EvaluationFunction {
     public float evaluate(int maxplayer, int minplayer, GameState gs) {
         float s1 = base_score(maxplayer,gs);
         float s2 = base_score(minplayer,gs);
-        float totalScore =  s1+s2;
-        float S1Ratio = s1/totalScore;
-        float S2Ratio = s2/totalScore;
-        float ReturnScore = S1Ratio - S2Ratio;
-        return ReturnScore;
+        if (s1 + s2 == 0) return 0.5f;
+        return  (2*s1 / (s1 + s2))-1;
     }
     
     public float base_score(int player, GameState gs) {
         PhysicalGameState pgs = gs.getPhysicalGameState();
         float score = gs.getPlayer(player).getResources()*ResourceValue;
-        for(Unit u:pgs.getUnits()) 
-        {
+        boolean anyunit = false;
+        for(Unit u:pgs.getUnits()) {
             if (u.getPlayer()==player) 
             {
-            	score += u.getResources()*ResourceInWorker;
-            	if(u.getType() == workerType) { score+= WorkerValue; break;}
-            	if(u.getType() == barracksType) {score+= BarracksValue;break;}
-            	if(u.getType() == lightType) {score+= LightValue;break;}
-            	if(u.getType() == RangedType) { score+= RangedValue;break;}
-            	if(u.getType() == baseType) { score+= BaseValue;break;}
-            	if(u.getType() == heavyType) { score+=HeavyValue ;break;}
+                anyunit = true;
+                score += u.getResources() * ResourceInWorker;
+                score += UnitBonus * u.getCost()*Math.sqrt( u.getHitPoints()/u.getMaxHitPoints());
+                if(u.getType() == baseType) score += BaseValue * u.getCost()*Math.sqrt( u.getHitPoints()/u.getMaxHitPoints());
+                
             }
         }
+        if (!anyunit) return 0;
         return score;
     }    
     

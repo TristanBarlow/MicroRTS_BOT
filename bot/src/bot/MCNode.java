@@ -32,9 +32,9 @@ public class MCNode
    public PlayerAction Move;
    public MCNode ParentNode;
    public ArrayList<MCNode>ChildNodes = new ArrayList<MCNode>();
-   public float wins =0;
+   public double wins =0;
    public int visits = 0;
-   public int Depth = 0;
+   public int Depth = 1;
    public int Breadth =0;
    public List<PlayerAction> UntriedMoves;
    public PlayerActionGenerator PAG = null;
@@ -42,15 +42,17 @@ public class MCNode
    public int MinPlayer =1;
    public int TriedMoves = 0;
    public long CutOffTime = 0;
+   public int MaxDepth = 10;
    public boolean EndGame = false;
    public float AverageEvaluation = 0;
    public GameState GSCopy;
    
-   public MCNode(int player, GameState gs, int MAXDEPTH, int breadth, int cutOffTime)throws Exception
+   public MCNode(int player, GameState gs, int MAXDEPTH, int breadth, long cutOffTime)throws Exception
    {
 	   	if(Player == 1)MinPlayer = 0;
 		   Player = player;
 		   GSCopy = gs;
+		   MaxDepth = MAXDEPTH;
 		   Breadth = breadth;
 		   CutOffTime = cutOffTime;
 		   while(!gs.canExecuteAnyAction(player) && !GSCopy.gameover() )
@@ -59,29 +61,23 @@ public class MCNode
 		   }
 		   if(!gs.gameover()&& gs.winner() == -1 )
 		   {
-			   
-			   PAG = new PlayerActionGenerator(gs, player);
-			   PAG.randomizeOrder();
-			   UntriedMoves = new ArrayList<PlayerAction>();
-			   while(UntriedMoves.size()< Breadth)
-			   {
-				   UntriedMoves.add(PAG.getNextAction(cutOffTime));
-			   }
+			   PopulateUntriedMoves();
 		   }
 		   else
 		   {
 			   EndGame = true;
 		   }
-		  // while(UntriedMoves.size()>0 && ChildNodes.size() < MAXBREADTH) AddChild(MAXDEPTH);
+
    }
    
    public MCNode(int player, PlayerAction move, GameState gs, MCNode parent, int depth, int MAXDEPTH, int breadth, long cutOffTime) throws Exception
    {
-	   if(Player == 1)MinPlayer = 0;
+	   	if(Player == 1)MinPlayer = 0;
 	   Move = move;
 	   Depth = depth+1;
 	   ParentNode = parent;
 	   Player = player;
+	   MaxDepth = MAXDEPTH;
 	   Breadth = breadth;
 	   GSCopy = gs;
 	   CutOffTime = cutOffTime;
@@ -91,37 +87,47 @@ public class MCNode
 	   }
 	   if(!GSCopy.gameover()&& GSCopy.winner() == -1 )
 	   {
-		   PAG = new PlayerActionGenerator(gs, player);
-		   PAG.randomizeOrder();
-		   UntriedMoves = new ArrayList<PlayerAction>();
-		   while(UntriedMoves.size()< Breadth)
-		   {
-			   UntriedMoves.add(PAG.getNextAction(CutOffTime));
-		   }
+		   PopulateUntriedMoves();
 	   }
 	   else
 	   {
 		   EndGame = true;
 	   }
+
    }
    
-   public float GetAverageEvaluation()
+   private void PopulateUntriedMoves() throws Exception
+   {
+	   
+	   PAG = new PlayerActionGenerator(GSCopy, Player);
+	   PAG.randomizeOrder();
+	   UntriedMoves = new ArrayList<PlayerAction>();
+	   while(UntriedMoves.size()< Breadth)
+	   {
+		   UntriedMoves.add(PAG.getNextAction(CutOffTime));
+	   }
+   }
+   
+   public double GetAverageEvaluation()
    {
 	   return wins/visits;
    }
    
-   public MCNode GetChild()
+   public MCNode GetChild() throws Exception
    {
+	   if(Depth >= MaxDepth)return this;
+	   if(UntriedMoves.size() > 0 && !EndGame){MCNode c = AddChild(MaxDepth, CutOffTime); return c;}
+	   if(ChildNodes.size() < 1)return this;
 	   ChildNodes.sort((m2, m1) -> Double.compare(m1.GetSortValue(this), m2.GetSortValue(this)));
 	   MCNode c = ChildNodes.get(0);
-	   return c;
+	   return c.GetChild();
    }
    
    public MCNode AddChild(int MAXDEPTH, long cuttOfTime) throws Exception
    {
 	   
 	   CutOffTime = cuttOfTime;
-	   if(UntriedMoves.size()>0 &&  Depth <= MAXDEPTH)
+	   if(UntriedMoves.size()>0 &&  Depth <= MAXDEPTH && !EndGame)
 	   {
 		   PlayerAction move = GetRandomAction();
 		   if(move != null)
@@ -133,14 +139,14 @@ public class MCNode
 		   return n;
 		   }
 	   }
-	   return null;
+	   return this;
 
    }
    
-   public void Update(float result)
+   public void Update(double result)
    {
 	   visits += 1;
-	   wins += result;
+	   wins = result;
    }
    
    public final double GetSortValue(MCNode c)
@@ -156,9 +162,12 @@ public class MCNode
 	   return ChildNodes.get(0);
    }
    
-   public MCNode GetChild2()
+   public MCNode GetChild2() throws Exception
    {
-	   // Bandit policy:
+	   if(Depth >= MaxDepth)return this;
+	   if(UntriedMoves.size() > 0 && !EndGame){MCNode c = AddChild(MaxDepth, CutOffTime); return c;}
+	   if(ChildNodes.size() < 1)return this;
+       // Bandit policy:
        double best_score = 0;
        MCNode best = null;
        for (MCNode child : ChildNodes) 
@@ -168,9 +177,15 @@ public class MCNode
                best = child;
                best_score = tmp;
            }
+       } 
+       
+       if (best==null) {
+//           System.out.println("No more leafs because this node has no children!");
+//           return null;
+           return this;
        }
-       if(best == null)return this;
-       return best;
+       return best.GetChild2();
+//       return best;
    }
    
    public PlayerAction GetRandomAction()
@@ -182,7 +197,7 @@ public class MCNode
 	   return visits;
    }
    
-   public float GetWins()
+   public double GetWins()
    {
 	   return wins;
    }
