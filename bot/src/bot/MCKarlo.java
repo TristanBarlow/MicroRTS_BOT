@@ -104,15 +104,17 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
 	        int nPlayouts = 0;
 	        int numberOfNodes = 0;
 	        long cutOffTime = start +  TIME_BUDGET;
-	        int maxIter =100;
-	        while(maxIter > nPlayouts) 
+	        long lastIterationTime = 0;
+	        while(true) 
 	        {
-	            if (cutOffTime >0 && System.currentTimeMillis() > cutOffTime) break;
+	        	long currentTime = System.currentTimeMillis();
+	           // if (cutOffTime >0 && currentTime + lastIterationTime > cutOffTime) break;
     			MCNode node = root;
     			
     			while(node.ChildNodes.size() > 0 && node.UntriedMoves.size() < 1)
     			{
     				node = node.GetChild();
+    				numberOfNodes = 0;
     			}
     			if(node.UntriedMoves.size() > 0)
     			{
@@ -126,6 +128,8 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
 	            	node.Update(Eval);
 	            	node = node.ParentNode;
 	            }
+	            root.GetMostVisitedNode();
+	            lastIterationTime = System.currentTimeMillis()- currentTime;
     			nPlayouts++;
     		}
 
@@ -141,7 +145,7 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
         else 
         { 
             
-        	return root.GetMostVisitedNode().Move;
+        	return root.ChildNodes.get(0).Move;
         }
         
 	}

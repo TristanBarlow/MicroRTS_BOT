@@ -41,6 +41,7 @@ public class MCNode
    public int MinPlayer =1;
    public int TriedMoves = 0;
    public boolean EndGame = false;
+   public float AverageEvaluation = 0;
    public GameState GSCopy;
    
    public MCNode(int player, GameState gs, int MAXDEPTH)throws Exception
@@ -63,6 +64,7 @@ public class MCNode
 		   }
 		  // while(UntriedMoves.size()>0 && ChildNodes.size() < MAXBREADTH) AddChild(MAXDEPTH);
    }
+   
    public MCNode(int player, PlayerAction move, GameState gs, MCNode parent, int depth, int MAXDEPTH) throws Exception
    {
 	   if(Player == 1)MinPlayer = 0;
@@ -79,6 +81,11 @@ public class MCNode
 	   {
 		   UntriedMoves =  GSCopy.getPlayerActions(player);
 	   }
+   }
+   
+   public float GetAverageEvaluation()
+   {
+	   return wins/visits;
    }
    
    public MCNode GetChild()
