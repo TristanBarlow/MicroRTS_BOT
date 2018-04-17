@@ -6,6 +6,7 @@ import ai.core.AIWithComputationBudget;
 import ai.core.ParameterSpecification;
 import ai.evaluation.EvaluationFunction;
 import ai.evaluation.SimpleSqrtEvaluationFunction3;
+import ai.mcts.naivemcts.UnitActionTableEntry;
 import ai.mcts.uct.UCTNode;
 
 import java.util.ArrayList;
@@ -16,7 +17,11 @@ import java.util.Random;
 import rts.GameState;
 import rts.PlayerAction;
 import rts.PlayerActionGenerator;
+import rts.ResourceUsage;
+import rts.UnitAction;
+import rts.units.Unit;
 import rts.units.UnitTypeTable;
+import util.Pair;
 import ai.core.InterruptibleAI;
 import ai.portfolio.*;
 import ai.minimax.*;
@@ -31,21 +36,30 @@ public class MCNode
 {
    public PlayerAction Move;
    public MCNode ParentNode;
+   public GameState GSCopy;
    public ArrayList<MCNode>ChildNodes = new ArrayList<MCNode>();
+   private ArrayList<MCUnitActions> UnitActions;
+   
+   private static double C = 0.05;
+   private boolean TryUAs = true;
+   
    public double wins =0;
    public int visits = 0;
+   
+   public int MaxDepth = 10;
    public int Depth = 1;
-   public int Breadth =0;
-   public List<PlayerAction> UntriedMoves;
+   
+   public int MaxBreadth =0;
+   public int Breadth = 0;
+   
    public PlayerActionGenerator PAG = null;
+   
    public int Player = 0;
    public int WinningPlayer = -1;
-   public int TriedMoves = 0;
    public long CutOffTime = 0;
-   public int MaxDepth = 10;
+
    public boolean EndGame = false;
    public float AverageEvaluation = 0;
-   public GameState GSCopy;
    
    
    //RootNode only
@@ -54,7 +68,7 @@ public class MCNode
 		   Player = MaxPlayer;
 		   GSCopy = gs;
 		   MaxDepth = MAXDEPTH;
-		   Breadth = breadth;
+		   MaxBreadth = breadth;
 		   CutOffTime = cutOffTime;
 		   while(!gs.canExecuteAnyAction(Player) && !GSCopy.gameover() )
 		   {
@@ -62,25 +76,27 @@ public class MCNode
 		   }
 		   if(!gs.gameover()&& gs.winner() == -1 )
 		   {
-			   PopulateUntriedMoves();
+			   if(TryUAs) PopulateUnitActions();
+			   else PopulateUntriedMoves();
 		   }
 		   if(gs.winner() == MaxPlayer)
 		   {
-			   PopulateUntriedMoves();
+			   if(TryUAs) PopulateUnitActions();
+			   else PopulateUntriedMoves();
 		   }
 
    }
    
-   public MCNode(int MaxPlayer, int MinPlayer, PlayerAction move, GameState gs, MCNode parent, int depth, int MAXDEPTH, int breadth, long cutOffTime) throws Exception
+   public MCNode(int MaxPlayer, int MinPlayer, PlayerAction move, GameState gs, MCNode parent) throws Exception
    {
 	   	if(Player == 1)MinPlayer = 0;
 	   Move = move;
-	   Depth = depth+1;
+	   Depth = parent.Depth+1;
 	   ParentNode = parent;
-	   MaxDepth = MAXDEPTH;
-	   Breadth = breadth;
+	   MaxDepth = parent.MaxDepth;
+	   MaxBreadth = parent.MaxBreadth;
 	   GSCopy = gs;
-	   CutOffTime = cutOffTime;
+	   CutOffTime = parent.CutOffTime;
 	   while(!GSCopy.canExecuteAnyAction(MaxPlayer) && !GSCopy.gameover() && !GSCopy.canExecuteAnyAction(MinPlayer) )
 	   {
 		   GSCopy.cycle();
@@ -92,12 +108,14 @@ public class MCNode
 	   else if(GSCopy.canExecuteAnyAction(MaxPlayer))
 	   {
 		   Player = MaxPlayer;
-		   PopulateUntriedMoves();
+		   if(TryUAs) PopulateUnitActions();
+		   else PopulateUntriedMoves();
 	   }
 	   else if(GSCopy.canExecuteAnyAction(MinPlayer))
 	   {
 		   Player = MinPlayer;
-		   PopulateUntriedMoves();
+		   if(TryUAs) PopulateUnitActions();
+		   else PopulateUntriedMoves();
 	   }
 
    }
@@ -107,10 +125,16 @@ public class MCNode
 	   
 	   PAG = new PlayerActionGenerator(GSCopy, Player);
 	   PAG.randomizeOrder();
-	   UntriedMoves = new ArrayList<PlayerAction>();
-	   while(UntriedMoves.size()< Breadth && PAG.getSize() > 1)
+   }
+   
+   private void PopulateUnitActions() throws Exception
+   {
+	   PAG = new PlayerActionGenerator(GSCopy, Player);
+	   PAG.randomizeOrder();
+	   UnitActions = new ArrayList<MCUnitActions>();
+	   for(Pair<Unit, List<UnitAction>> UAs :PAG.getChoices())
 	   {
-		   UntriedMoves.add(PAG.getNextAction(CutOffTime));
+		   UnitActions.add(new MCUnitActions(UAs.m_a, (ArrayList<UnitAction>)UAs.m_b));
 	   }
    }
    
@@ -121,30 +145,36 @@ public class MCNode
    
    public MCNode GetChild(int MaxPlayer, int MinPlayer) throws Exception
    {
-	   if(Depth >= MaxDepth)return this;
-	   if(UntriedMoves.size() > 0 && !EndGame){MCNode c = AddChild(MaxPlayer, MinPlayer,MaxDepth, CutOffTime); return c;}
-	   if(ChildNodes.size() < 1)return this;
+	   if(ChildNodes.size() < MaxBreadth)
+	   {
+		   MCNode c = AddChild(MaxPlayer, MinPlayer); 
+		   return c;
+	   }
+	   else if(!EndGame)
+	   {
+		   ChildNodes.sort((m2, m1) -> Double.compare(m1.GetSortValue(this), m2.GetSortValue(this)));
+		   MCNode c = ChildNodes.get(0);
+		   return c.GetChild(MaxPlayer, MinPlayer);
+	   }
+	   return this;
 	   
-	   ChildNodes.sort((m2, m1) -> Double.compare(m1.GetSortValue(this), m2.GetSortValue(this)));
-	   MCNode c = ChildNodes.get(0);
-	   return c.GetChild(MaxPlayer, MinPlayer);
+
+
    }
    
-   public MCNode AddChild(int MaxPlayer,int MinPlayer, int MAXDEPTH, long cuttOfTime) throws Exception
+   public MCNode AddChild(int MaxPlayer,int MinPlayer) throws Exception
    {
+	   PlayerAction move;
+	   if(TryUAs)move = GetBiasAction();
+	   else move = GetRandomAction();
 	   
-	   CutOffTime = cuttOfTime;
-	   if(UntriedMoves.size()>0 &&  Depth <= MAXDEPTH && !EndGame)
+	   if(move != null && Depth <= MaxDepth)
 	   {
-		   PlayerAction move = GetRandomAction();
-		   if(move != null)
-		   {
 		   GameState gs = GSCopy.cloneIssue(move);
-		   MCNode n = new MCNode(MaxPlayer,MinPlayer, move, gs.clone(), this , Depth, MAXDEPTH, Breadth,  CutOffTime);
-		   TriedMoves++;
+		   MCNode n = new MCNode(MaxPlayer,MinPlayer, move, gs.clone(), this );
 		   ChildNodes.add(n);
+		   Breadth++;
 		   return n;
-		   }
 	   }
 	   return this;
 
@@ -165,13 +195,74 @@ public class MCNode
 
    public MCNode GetMostVisitedNode()
    {
-	   ChildNodes.sort((m2, m1) -> Double.compare(m1.visits, m2.visits));
+	   ChildNodes.sort((m2, m1) -> Integer.compare(m1.visits, m2.visits));
 	   return ChildNodes.get(0);
    }
    
-   public PlayerAction GetRandomAction()
+   public MCNode GetBestNode()
    {
-	   return UntriedMoves.remove(0);
+	   MCNode best = ChildNodes.get(0);
+	   for(MCNode mc : ChildNodes)
+	   {
+		   if(mc.visits > best.visits)
+		   {
+			   best = mc;
+		   }
+		   else if(mc.visits == best.visits && mc.wins > best.wins)
+		   {
+			   best = mc;
+		   }
+	   }
+	   return best;
+   }
+   
+   public MCNode GetHighestEvaluationNode()
+   {
+	   ChildNodes.sort((m2, m1) -> Double.compare(m1.wins, m2.wins));
+	   return ChildNodes.get(0);
+   }
+   
+   public PlayerAction GetRandomAction() throws Exception
+   {
+	   PlayerAction move = PAG.getNextAction(CutOffTime);
+	   return move;
+   }
+   
+   public PlayerAction GetBiasAction() throws Exception
+   {
+       ResourceUsage base_ru = new ResourceUsage();
+       for(Unit u:GSCopy.getUnits()) {
+           UnitAction ua = GSCopy.getUnitAction(u);
+           if (ua!=null) {
+               ResourceUsage ru = ua.resourceUsage(u, GSCopy.getPhysicalGameState());
+               base_ru.merge(ru);
+           }
+       }
+	  PlayerAction ReturnPA = new PlayerAction();
+      ReturnPA.setResourceUsage(base_ru.clone());  
+	  Random r = new Random();
+	  for(MCUnitActions UAs : UnitActions)
+	  {
+		  UnitAction ua;
+		  ResourceUsage r2;
+		  int iter = 0;
+		  ua = UAs.GetBestAction();
+          r2 = ua.resourceUsage(UAs.unit, GSCopy.getPhysicalGameState());
+          if (!ReturnPA.getResourceUsage().consistentWith(r2, GSCopy)) 
+          {
+		  do{
+			  ua = UAs.GetRandomAction();
+			  r2 = ua.resourceUsage(UAs.unit, GSCopy.getPhysicalGameState());
+			  iter++;
+		  	}while(!ReturnPA.getResourceUsage().consistentWith(r2, GSCopy)&& iter < UAs.ValidActions.size());
+          }
+		  if (GSCopy.getUnit(UAs.unit.getID())==null) throw new Error("Issuing an action to an inexisting unit!!!");
+          ReturnPA.getResourceUsage().merge(r2);
+          ReturnPA.addUnitAction(UAs.unit, ua);
+		  
+	  }
+	
+	  return ReturnPA;
    }
    public int GetVisits()
    {
@@ -197,7 +288,7 @@ public class MCNode
        }
 //           System.out.println(exploitation + " + " + exploration);
 
-       double tmp = 0.005*exploitation + exploration;
+       double tmp = C*exploitation + exploration;
        return tmp;
    }
 }

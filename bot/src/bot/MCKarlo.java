@@ -47,7 +47,7 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
 	int MaxPlayer =0;
 	int RunsThisMove = 0;
 	int TimeBudget = 0;
-	int LookaHead = 50;
+	int LookaHead = 100;
 	int TotalPlayouts = 0;
 	
 	MCNode root = null;
@@ -61,8 +61,8 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
 	
     public MCKarlo(UnitTypeTable utt) 
     {
-        this(100,-1, 20,10, new RandomBiasedAI(utt), new MCEvaluation(utt));
-        BigMapPolicy = new CRush_V2(utt,new GreedyPathFinding());
+        this(100,-1, 65, 7, new RandomBiasedAI(utt), new MCEvaluation(utt));
+        BigMapPolicy = new PortfolioAI(utt);
     }
 
     public MCKarlo(int available_time, int MaxPlayouts, int breadth, int depth, AI AIPolicy, EvaluationFunction a_ef) 
@@ -82,10 +82,11 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
     	if(MaxPlayer ==1)MinPlayer =0;
     	else MinPlayer =1;
     	
-        if ((gs.getPhysicalGameState().getWidth() *gs.getPhysicalGameState().getHeight()) >= 144) {
+    	if ((gs.getPhysicalGameState().getWidth() *gs.getPhysicalGameState().getHeight()) >= 144) 
+    	{
            return BigMapPolicy.getAction(player, gs);
-        }
-
+    	}
+    	
     	if(gs.canExecuteAnyAction(player))
     	{
     		startNewComputation(player, gs);
@@ -123,6 +124,7 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
             {
             	node = root.GetChild(MaxPlayer, MinPlayer);
             	tDepth = node.Depth;
+            	//System.out.println("Depth : " + tDepth);
             }
             catch(NullPointerException e)
             {
@@ -136,7 +138,7 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
             	GameState gs2 = node.GSCopy.clone();
             	SimulateGame(gs2, gs2.getTime() + LookaHead );
                 int time = gs2.getTime() - StartGameState.getTime();
-            	Eval  = EvaluationMethod.evaluate(MaxPlayer, MinPlayer, gs2)*Math.pow(0.99,time/tDepth);
+            	Eval  = EvaluationMethod.evaluate(MaxPlayer, MinPlayer, gs2);//*Math.pow(0.99,time/tDepth);
             	//System.out.println(Eval);
             	node.wins += Eval;
             	node.visits++;
@@ -146,7 +148,7 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
             //System.out.println(lastIterationTime);
 			nPlayouts++;
 		}
-
+       // System.out.println("Playouts : "+nPlayouts);
  }
 
 	@Override
@@ -158,8 +160,8 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
         }
         else 
         { 
-            
-        	return root.GetMostVisitedNode().Move;
+            MCNode n = root.GetBestNode();
+        	return n.Move;
         }
         
 	}
@@ -198,8 +200,9 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
             } 
             else 
             {
-                gs.issue(BaseAI.getAction(MaxPlayer, gs));
-                gs.issue(BaseAI.getAction(MinPlayer, gs));
+              //  gs.issue(BaseAI.getAction(MaxPlayer, gs));
+                //gs.issue(BaseAI.getAction(MinPlayer, gs));
+            	gs.cycle();
             }
         }while(!gameover && gs.getTime()<time);   
 		

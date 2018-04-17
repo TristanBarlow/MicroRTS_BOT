@@ -14,7 +14,7 @@ public class MCEvaluation extends EvaluationFunction {
     public static float ResourceValue = 30;
     public static float BarracksValue = 200;
     public static float ResourceInWorker = 10;
-    public static float BaseValue = 100;
+    public static float BaseValue = 150;
     public static float RangedValue = 50;
     public static float WorkerValue = 10;
     public static float HeavyValue =100;
