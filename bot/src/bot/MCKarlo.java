@@ -47,7 +47,7 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
 	int MaxPlayer =0;
 	int RunsThisMove = 0;
 	int TimeBudget = 0;
-	int LookaHead = 100;
+	int LookaHead = 50;
 	int TotalPlayouts = 0;
 	
 	MCNode root = null;
@@ -61,7 +61,7 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
 	
     public MCKarlo(UnitTypeTable utt) 
     {
-        this(100,-1, 50,20, new RandomBiasedAI(utt), new SimpleSqrtEvaluationFunction3());
+        this(100,-1, 20,10, new RandomBiasedAI(utt), new MCEvaluation(utt));
         BigMapPolicy = new CRush_V2(utt,new GreedyPathFinding());
     }
 
@@ -89,8 +89,7 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
     	if(gs.canExecuteAnyAction(player))
     	{
     		startNewComputation(player, gs);
-    		ComputeFillFirst();
-    		//computeDuringOneGameFrame();
+    		computeDuringOneGameFrame();
     		return getBestActionSoFar();
     	}
     	else return BaseAI.getAction(MaxPlayer, StartGameState);
@@ -102,9 +101,11 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
 	 	long start = System.currentTimeMillis();
         long cutOffTime = start +  TIME_BUDGET;
 		StartGameState = gs;
-		root = new MCNode(player, gs.clone(), Depth, Breadth, cutOffTime);
+		root = new MCNode(MaxPlayer, MinPlayer, gs.clone(), Depth, Breadth, cutOffTime);
 	}
-	public void ComputeFillFirst() throws Exception
+
+	@Override
+	public void computeDuringOneGameFrame() throws Exception
 	{
 	 	long start = System.currentTimeMillis();
         int nPlayouts = 0;
@@ -118,8 +119,15 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
         {
         	long currentTime = System.currentTimeMillis();
             if (cutOffTime >0 && currentTime> cutOffTime) break;
-            try {node = root.GetChild();tDepth = node.Depth;}
-            catch(NullPointerException e){break;}
+            try 
+            {
+            	node = root.GetChild(MaxPlayer, MinPlayer);
+            	tDepth = node.Depth;
+            }
+            catch(NullPointerException e)
+            {
+            	break;
+            }
 
             double Eval  = 0;
 
@@ -138,47 +146,8 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
             //System.out.println(lastIterationTime);
 			nPlayouts++;
 		}
-	}
 
-	@Override
-	public void computeDuringOneGameFrame() throws Exception
-	{
-		 	long start = System.currentTimeMillis();
-	        int nPlayouts = 0;
-	        int numberOfNodes = 0;
-	        long cutOffTime = start +  TIME_BUDGET;
-	        long lastIterationTime = 0;
-	        boolean Compute = true;
-	        while(Compute) 
-	        {
-	        	long currentTime = System.currentTimeMillis();
-	            if (cutOffTime >0 && currentTime> cutOffTime) break;
-    			MCNode node = root;
-    			
-    			while(node.ChildNodes.size() > 0  && node.UntriedMoves.size() < 1)
-    			{
-    				node = node.GetChild();
-    				numberOfNodes++;
-    			}
-    			if(node.UntriedMoves != null && node.UntriedMoves.size() > 0)
-    			{
-    				node = node.AddChild(Depth, cutOffTime);
-    			}
-	            while(node != null)
-	            {
-	            	GameState gs2 = node.GSCopy.clone();
-	            	SimulateGame(gs2, gs2.getTime() + LookaHead );
-	                int time = gs2.getTime() - StartGameState.getTime();
-	            	double Eval  = EvaluationMethod.evaluate(MaxPlayer, MinPlayer, gs2)*Math.pow(0.99,time/Depth);
-	            	node.Update(Eval);
-	            	node = node.ParentNode;
-	            }
-	            lastIterationTime = System.currentTimeMillis() - currentTime;
-	            System.out.println(lastIterationTime);
-    			nPlayouts++;
-    		}
-
-        }
+ }
 
 	@Override
 	public PlayerAction getBestActionSoFar() throws Exception

@@ -11,10 +11,10 @@ import rts.units.*;
 
 
 public class MCEvaluation extends EvaluationFunction {    
-    public static float ResourceValue = 20;
+    public static float ResourceValue = 30;
     public static float BarracksValue = 200;
     public static float ResourceInWorker = 10;
-    public static float BaseValue = 50;
+    public static float BaseValue = 100;
     public static float RangedValue = 50;
     public static float WorkerValue = 10;
     public static float HeavyValue =100;
@@ -57,6 +57,7 @@ public class MCEvaluation extends EvaluationFunction {
                 score += u.getResources() * ResourceInWorker;
                 score += UnitBonus * u.getCost()*Math.sqrt( u.getHitPoints()/u.getMaxHitPoints());
                 if(u.getType() == baseType) score += BaseValue * u.getCost()*Math.sqrt( u.getHitPoints()/u.getMaxHitPoints());
+                //if(u.getType() == barracksType) score += BarracksValue * u.getCost()*Math.sqrt( u.getHitPoints()/u.getMaxHitPoints());
                 
             }
         }
