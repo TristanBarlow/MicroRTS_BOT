@@ -47,7 +47,7 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
 	int MaxPlayer =0;
 	int RunsThisMove = 0;
 	int TimeBudget = 0;
-	int LookaHead = 100;
+	int LookaHead = 50;
 	int TotalPlayouts = 0;
 	
 	MCNode root = null;
@@ -62,7 +62,7 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
 	
     public MCKarlo(UnitTypeTable utt) 
     {
-        this(100,-1, 100, 5, new RandomBiasedAI(utt), new SimpleSqrtEvaluationFunction3());
+        this(100,-1, 100, 10, new RandomBiasedAI(utt), new SimpleSqrtEvaluationFunction3());
         BigMapPolicy = new PortfolioAI(utt);
         LateGamePolicy = new WorkerRush(utt,new GreedyPathFinding());
     }
