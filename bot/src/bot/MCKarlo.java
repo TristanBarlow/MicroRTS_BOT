@@ -58,11 +58,13 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
 	PlayerAction FinalAction;
 	ArrayList<GameState> States;
 	AI BigMapPolicy;
+	AI LateGamePolicy;
 	
     public MCKarlo(UnitTypeTable utt) 
     {
-        this(100,-1, 50, 10, new RandomAI(utt), new MCEvaluation(utt));
+        this(100,-1, 50, 10, new RandomBiasedAI(utt), new MCEvaluation(utt));
         BigMapPolicy = new PortfolioAI(utt);
+        LateGamePolicy = new WorkerRush(utt,new GreedyPathFinding());
     }
 
     public MCKarlo(int available_time, int MaxPlayouts, int breadth, int depth, AI AIPolicy, EvaluationFunction a_ef) 
@@ -86,6 +88,11 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
     	{
            return BigMapPolicy.getAction(player, gs);
     	}
+    	if(gs.getTime() > 3000)
+    	{
+    		return LateGamePolicy.getAction(player, gs);
+    	}
+    	
     	if(gs.canExecuteAnyAction(player))
     	{
     		startNewComputation(player, gs);
