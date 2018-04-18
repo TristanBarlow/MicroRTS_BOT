@@ -1,38 +1,11 @@
 package bot;
 
-import ai.core.AI;
-import ai.RandomBiasedAI;
-import ai.core.AIWithComputationBudget;
-import ai.core.ParameterSpecification;
-import ai.evaluation.EvaluationFunction;
-import ai.evaluation.SimpleSqrtEvaluationFunction3;
-import ai.mcts.MCTSNode;
-import ai.mcts.naivemcts.NaiveMCTSNode;
-import ai.mcts.naivemcts.UnitActionTableEntry;
-import ai.mcts.uct.UCTNode;
-
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Random;
 import rts.GameState;
 import rts.PlayerAction;
 import rts.PlayerActionGenerator;
-import rts.ResourceUsage;
-import rts.UnitAction;
-import rts.units.Unit;
-import rts.units.UnitTypeTable;
-import util.Pair;
-import ai.core.InterruptibleAI;
-import ai.portfolio.*;
-import ai.minimax.*;
-import ai.abstraction.*;
-import ai.abstraction.pathfinding.GreedyPathFinding;
-import ai.RandomAI;
-import java.util.Map;
-import java.util.Comparator;
-import java.math.*;
+
 
 public class MCNode
 {
@@ -40,16 +13,13 @@ public class MCNode
    public MCNode ParentNode;
    public GameState GSCopy;
    public ArrayList<MCNode>ChildNodes = new ArrayList<MCNode>();
-   private ArrayList<MCUnitActions> UnitActions;
    
    private static double C = 0.05;
    private Random r = new Random();
  
-   //0 for endgame 1 for MaxPlayer -1 for MinPlayer
-   private int NodeType =0;
-   
-   public double wins =0;
-   public int visits = 0;
+   public double TotalEvaluation =0;
+   public double Evaluation = 0;
+   public int Visits = 0;
    
    public int MaxDepth = 10;
    public int Depth = 1;
@@ -65,7 +35,6 @@ public class MCNode
    public long CutOffTime = 0;
 
    public boolean EndGame = false;
-   public float AverageEvaluation = 0;
    
    
    //RootNode only
@@ -132,16 +101,20 @@ public class MCNode
    
    public double GetAverageEvaluation()
    {
-	   return wins/visits;
+	   return TotalEvaluation/Visits;
    }
    
    public MCNode GetChild(int MaxPlayer, int MinPlayer) throws Exception
    {
-	   if((ChildNodes.size() < MaxBreadth && HasMoreAction))// ||  (r.nextDouble()< C))
+	   if(!HasMoreAction)return this;
+	   if(Depth >= MaxDepth) return this;
+	   
+	   if((ChildNodes.size() < MaxBreadth))
 	   {
 		   MCNode c = AddChild(MaxPlayer, MinPlayer); 
 		   return c;
 	   }
+	   
 	   else if(!EndGame && ChildNodes.size() > 0)
 	   {
 		   ChildNodes.sort((m2, m1) -> Double.compare(m1.GetSortValue(this), m2.GetSortValue(this)));
@@ -153,9 +126,9 @@ public class MCNode
    
    public MCNode EpislonChildGet(int MaxPlayer, int MinPlayer, float E0, float eg ) throws Exception
    {
-	   if(ChildNodes.size() > 0 && r.nextFloat() >= E0 )
+	   if(ChildNodes.size() > 0 && r.nextFloat() <= E0 )
 	   {
-		   return GetGreedyChild(eg).EpislonChildGet(MaxPlayer, MinPlayer, E0, eg);
+		   return GetGreedyChild(eg, MaxPlayer, MinPlayer).EpislonChildGet(MaxPlayer, MinPlayer, E0, eg);
 	   }
 	   else
 	   {
@@ -163,21 +136,30 @@ public class MCNode
 	   }
    }
    
-   public MCNode GetGreedyChild(double EG)
+   public MCNode GetGreedyChild(double EG, int MinPlayer, int MaxPlayer)
    {
 	   MCNode GreedyChild = null;
 	   
 	   if(r.nextFloat() >= EG) 
 	   {
-           for(MCNode c: ChildNodes)
-           {
-                   // max node:
-                   if (GreedyChild==null || (c.wins/c.visits)>(c.wins/c.visits)) 
-                   {
-                       GreedyChild = c;
-                   }                            
-           }
-    	   return GreedyChild;
+	           for(MCNode c: ChildNodes)
+	           {
+	        	   if(Player == MaxPlayer)
+	        	   {
+	                   if (GreedyChild==null || (c.TotalEvaluation/c.Visits)>(GreedyChild.TotalEvaluation/GreedyChild.Visits)) 
+	                   {
+	                       GreedyChild = c;
+	                   } 
+	        	   }
+	        	   else 
+	        	   {
+	                   if (GreedyChild==null || (c.TotalEvaluation/c.Visits)<(GreedyChild.TotalEvaluation/GreedyChild.Visits)) 
+	                   {
+	                       GreedyChild = c;
+	                   }
+	        	   }
+	           }
+	    	   return GreedyChild;
        } 
 	   else 
 	   {
@@ -191,7 +173,7 @@ public class MCNode
 	   PlayerAction move;
 	   move = GetRandomAction();
 	   
-	   if(move != null && Depth <= MaxDepth)
+	   if(move != null)
 	   {
 		   GameState gs = GSCopy.cloneIssue(move);
 		   MCNode n = new MCNode(MaxPlayer,MinPlayer, move, gs.clone(), this );
@@ -206,20 +188,20 @@ public class MCNode
    
    public void Update(double result)
    {
-	   visits += 1;
-	   wins = result;
+	   Visits += 1;
+	   TotalEvaluation = result;
    }
    
    public final double GetSortValue(MCNode c)
    {
-	   double d =  wins/visits + Math.sqrt(2*Math.log(c.visits)/visits);
+	   double d =  c.TotalEvaluation/c.Visits + Math.sqrt(2*Math.log(Visits)/c.Visits);
 
 	   return d;
    }
 
    public MCNode GetMostVisitedNode()
    {
-	   ChildNodes.sort((m2, m1) -> Integer.compare(m1.visits, m2.visits));
+	   ChildNodes.sort((m2, m1) -> Integer.compare(m1.Visits, m2.Visits));
 	   return ChildNodes.get(0);
    }
    
@@ -228,11 +210,11 @@ public class MCNode
 	   MCNode best = ChildNodes.get(0);
 	   for(MCNode mc : ChildNodes)
 	   {
-		   if(mc.visits > best.visits)
+		   if(mc.Visits > best.Visits)
 		   {
 			   best = mc;
 		   }
-		   else if(mc.visits == best.visits && mc.wins > best.wins)
+		   else if(mc.Visits == best.Visits && mc.TotalEvaluation > best.TotalEvaluation)
 		   {
 			   best = mc;
 		   }
@@ -242,7 +224,7 @@ public class MCNode
    
    public MCNode GetHighestEvaluationNode()
    {
-	   ChildNodes.sort((m2, m1) -> Double.compare(m1.wins, m2.wins));
+	   ChildNodes.sort((m2, m1) -> Double.compare(m1.TotalEvaluation, m2.TotalEvaluation));
 	   return ChildNodes.get(0);
    }
    
@@ -254,29 +236,11 @@ public class MCNode
    
    public int GetVisits()
    {
-	   return visits;
+	   return Visits;
    }
    
    public double GetWins()
    {
-	   return wins;
-   }
-   public double childValue(MCNode child) 
-   {
-       double exploitation = ((double)child.wins) / child.visits;
-       double exploration = Math.sqrt(Math.log((double)visits)/child.visits);
-       if (EndGame) 
-       {
-           // max node:
-           exploitation = (1 + exploitation)/(2*1);
-       } 
-       else 
-       {
-           exploitation = (1 - exploitation)/(2*1);
-       }
-//           System.out.println(exploitation + " + " + exploration);
-
-       double tmp = C*exploitation + exploration;
-       return tmp;
+	   return TotalEvaluation;
    }
 }

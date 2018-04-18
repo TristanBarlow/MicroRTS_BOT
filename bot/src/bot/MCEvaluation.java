@@ -43,8 +43,8 @@ public class MCEvaluation extends EvaluationFunction {
     public float evaluate(int maxplayer, int minplayer, GameState gs) {
         float s1 = base_score(maxplayer,gs);
         float s2 = base_score(minplayer,gs);
-        if (s1 + s2 == 0) return 0.5f;
-        return  (2*s1 / (s1 + s2))-1;
+        float total = s1+s2;
+        return  (s1/total) - (s2/total);
     }
     
     public float base_score(int player, GameState gs) {
@@ -56,13 +56,13 @@ public class MCEvaluation extends EvaluationFunction {
             {
                 anyunit = true;
                 score += u.getResources() * ResourceInWorker;
-                //score += UnitBonus * u.getCost()*Math.sqrt( u.getHitPoints()/u.getMaxHitPoints());
-                if(u.getType() == baseType) { score += BaseValue * u.getCost()*Math.sqrt( u.getHitPoints()/u.getMaxHitPoints()); break;}
-                if(u.getType() == workerType) { score += WorkerValue * u.getCost()*Math.sqrt( u.getHitPoints()/u.getMaxHitPoints());break;}
-                if(u.getType() == barracksType) { score += BarracksValue* u.getCost()*Math.sqrt( u.getHitPoints()/u.getMaxHitPoints());break;}
-                if(u.getType() == rangedType) { score += RangedValue* u.getCost()*Math.sqrt( u.getHitPoints()/u.getMaxHitPoints());break;}
-                if(u.getType() == lightType) { score += LightValue* u.getCost()*Math.sqrt( u.getHitPoints()/u.getMaxHitPoints());break;}
-                if(u.getType() == heavyType) { score += HeavyValue* u.getCost()*Math.sqrt( u.getHitPoints()/u.getMaxHitPoints());break;}
+                score += UnitBonus * u.getCost()*Math.sqrt( u.getHitPoints()/u.getMaxHitPoints());
+             //   if(u.getType() == baseType) { score += BaseValue * u.getCost()*Math.sqrt( u.getHitPoints()/u.getMaxHitPoints()); break;}
+               // if(u.getType() == workerType) { score += WorkerValue * u.getCost()*Math.sqrt( u.getHitPoints()/u.getMaxHitPoints());break;}
+                //if(u.getType() == barracksType) { score += BarracksValue* u.getCost()*Math.sqrt( u.getHitPoints()/u.getMaxHitPoints());break;}
+                //if(u.getType() == rangedType) { score += RangedValue* u.getCost()*Math.sqrt( u.getHitPoints()/u.getMaxHitPoints());break;}
+                //if(u.getType() == lightType) { score += LightValue* u.getCost()*Math.sqrt( u.getHitPoints()/u.getMaxHitPoints());break;}
+                //if(u.getType() == heavyType) { score += HeavyValue* u.getCost()*Math.sqrt( u.getHitPoints()/u.getMaxHitPoints());break;}
                 
             }
         }

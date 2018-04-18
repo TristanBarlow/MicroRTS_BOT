@@ -170,36 +170,40 @@ public class GameVisualSimulationTest
     	ArrayList<Integer> Results = null;
     	double average = 0;
     	
+    	int j = 0;
+    	double AVofAv = 0;
+    	double Averages = 0;
+    	
     	do {
-    	int BMin = 400;
-    	int DMin = 3;
-    	int LMin = 10;
-    	
-    	int B = BMin + r.nextInt(1000- BMin);
-    	int D = DMin + r.nextInt(15-DMin);
-    	int L = LMin + r.nextInt(50-LMin);
-    	
-    	Results = PlayAllMaps(true, PLayerWeCareAbout, B, D, L);
+    		j++;
+
+    	Results = PlayAllMaps(false, PLayerWeCareAbout);
     	if(Results.size() < 1)return;
     	
     	int PlayerWins = 0;
+    	int Losses = 0;
     	int Draws = 0;
     	average = 0;
     	
-    	for(int i : Results)
+
+    	
+    	for(int r1 : Results)
     	{
-    		if(i== PLayerWeCareAbout)PlayerWins++;
-    		if(i== -1)Draws++;
+    		if(r1== PLayerWeCareAbout)PlayerWins++;
+    		if(r1== 1) Losses++;
+    		if(r1== -1)Draws++;
     	}
     	
-    	if(PlayerWins <= 0);
-    	else average = PlayerWins/Results.size();
+    	if(PlayerWins > 0)average = PlayerWins/Results.size();
+    	else System.out.println("No wins");
     	System.out.println("Average Win Ratio : " + average);
-    	System.out.println("Breadth: " + B + ", Depth: "+ D + ", LookaHead:" + L);
-    	}while(average <= 0);
+    	Averages += average;
+    	
+    	}while(j < 15);
+    	System.out.println(Averages/j);
     }
     
-    	 public static ArrayList<Integer> PlayAllMaps(boolean Visualise, int PlayerWeCareAbout, int b, int d, int l) throws Exception
+    	 public static ArrayList<Integer> PlayAllMaps(boolean Visualise, int PlayerWeCareAbout) throws Exception
     	    {
     		 	ArrayList<Integer> rList = new ArrayList<Integer>();
     		 	
@@ -215,7 +219,7 @@ public class GameVisualSimulationTest
     	        int PERIOD = 20;
     	        boolean gameover = false;
     	        
-    	        AI ai2 = new PortfolioAI(utt);
+    	        AI ai2 = new MCKarlo(utt);
     	       // ai1.ChangeInputParams(b, d, l);
     	        
     	        AI ai1 = new MCKarlo(utt);//RandomBiasedAI();//

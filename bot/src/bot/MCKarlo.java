@@ -57,7 +57,9 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
 	int TimeBudget = 0;
 	int LookaHead = 50;
 	int TotalPlayouts = 0;
+	
 	boolean IsStuck = false;
+	boolean IsGreedy = false;
 	
 	MCNode root = null;
 	GameState StartGameState;
@@ -71,9 +73,10 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
 	
     public MCKarlo(UnitTypeTable utt) 
     {
-        this(100,-1, 1000, 15, new RandomBiasedAI(utt), new SimpleSqrtEvaluationFunction3());
+        this(100,-1, 1000, 10, new RandomBiasedAI(utt), new SimpleSqrtEvaluationFunction3());
         BigMapPolicy = new PortfolioAI(utt);
         LateGamePolicy = new WorkerRush(utt,new GreedyPathFinding());
+        IsGreedy = true;
     }
 
     public MCKarlo(int available_time, int MaxPlayouts, int breadth, int depth, AI AIPolicy, EvaluationFunction a_ef) 
@@ -99,20 +102,21 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
     	MaxPlayer = player;
     	if(MaxPlayer ==1)MinPlayer =0;
     	else MinPlayer =1;
-    	
-    	if(gs.getPhysicalGameState().getWidth()<= 8 && gs.getTime() < 1500 )
-    	{
-    		//return LateGamePolicy.getAction(player, gs);
-    	}
-    	if(gs.canExecuteAnyAction(player) && gs.getTime() < 4500)
+
+    	if(gs.canExecuteAnyAction(player) && gs.getTime() < 2500 && !IsStuck)
     	{
     		startNewComputation(player, gs);
     		computeDuringOneGameFrame();
     		return getBestActionSoFar();
     	}
-    	if(IsStuck) return StuckGameRush();
+    	else if(IsStuck) 
+    	{ 
+    		IsStuck = false;
+    		return StuckGameRush();
+    	}
     	else return BaseAI.getAction(player, gs);
     }
+    
 
 	@Override
 	public void startNewComputation(int player, GameState gs) throws Exception
@@ -139,8 +143,9 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
         	long currentTime = System.currentTimeMillis();
             if (cutOffTime >0 && currentTime> cutOffTime) break;
             try 
-            {
-            	node = root.GetChild(MaxPlayer, MinPlayer);
+            {	
+            	if(IsGreedy) node = root.EpislonChildGet(MaxPlayer, MinPlayer, 0.0f, 0.4f);
+            	else node = root.GetChild(MaxPlayer, MinPlayer);
             	tDepth = node.Depth;
             	//System.out.println("Depth : " + tDepth);
             }
@@ -156,10 +161,12 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
             	GameState gs2 = node.GSCopy.clone();
             	SimulateGame(gs2, gs2.getTime() + LookaHead );
                 int time = gs2.getTime() - StartGameState.getTime();
-            	Eval  = EvaluationMethod.evaluate(MaxPlayer, MinPlayer, gs2)*Math.pow(0.99,time/tDepth);
-            	//System.out.println(Eval);
-            	node.wins += Eval;
-            	node.visits++;
+                double TEval = EvaluationMethod.evaluate(MaxPlayer, MinPlayer, gs2);//Math.pow(0.99,time/tDepth);
+            	Eval  += TEval; 
+            	node.Evaluation = TEval;
+            	node.TotalEvaluation = Eval;
+            	node.Visits++;
+            	//System.out.println("Evaluation = " + node.GetAverageEvaluation());
             	node = node.ParentNode;
             }
            // lastIterationTime = System.currentTimeMillis() - currentTime;
@@ -174,7 +181,8 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
 	{
         if (root.ChildNodes.size() <= 1) 
         {
-        	return BigMapPolicy.getAction(MaxPlayer, StartGameState);
+        	IsStuck = true;
+        	return StuckGameRush();
         }
         else 
         { 
@@ -229,29 +237,17 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
         	 return null;
          }
     }
-    
-    public PlayerAction AllAttackNearestEnemy(Player p, GameState gs, List<Unit> UL)
-    {
-    	for(Unit u : UL)
-    	{
-        PhysicalGameState pgs = gs.getPhysicalGameState();
-        attack(u, getNearestEnemy(pgs, p, u));
-    	}
-    	return translateActions(MaxPlayer, gs);
-         
-    }
-    
+
     public PlayerAction StuckGameRush()
     {
-    	List<Unit> UL = new ArrayList<Unit>();
     	for(Unit u: StartGameState.getPhysicalGameState().getUnits())
     	{
     		if(u.getPlayer() == MaxPlayer && u.getType().canAttack)
     		{
-    			UL.add(u);
+    	        attack(u, getNearestEnemy(StartGameState.getPhysicalGameState(), StartGameState.getPlayer(MaxPlayer), u));
     		}
     	}
-    	return AllAttackNearestEnemy(StartGameState.getPlayer(MaxPlayer), StartGameState, UL);
+    	return translateActions(MaxPlayer, StartGameState);
     }
 	
 	public void SimulateGame(GameState gs, int time)throws Exception 
