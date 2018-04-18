@@ -143,11 +143,11 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
             	node.visits++;
             	node = node.ParentNode;
             }
-            lastIterationTime = System.currentTimeMillis() - currentTime;
+           // lastIterationTime = System.currentTimeMillis() - currentTime;
             //System.out.println(lastIterationTime);
 			nPlayouts++;
 		}
-       System.out.println("Playouts : "+nPlayouts);
+      // System.out.println("Playouts : "+nPlayouts);
  }
 
 	@Override
