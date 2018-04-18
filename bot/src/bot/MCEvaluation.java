@@ -11,22 +11,23 @@ import rts.units.*;
 
 
 public class MCEvaluation extends EvaluationFunction {    
-    public static float ResourceValue = 30;
-    public static float BarracksValue = 200;
+    public static float ResourceValue = 20;
+    public static float BarracksValue = 10;
     public static float ResourceInWorker = 10;
-    public static float BaseValue = 150;
-    public static float RangedValue = 50;
-    public static float WorkerValue = 10;
-    public static float HeavyValue =100;
-    public static float LightValue =100;
+    public static float BaseValue = 20;
+    public static float RangedValue = 80;
+    public static float WorkerValue = 1000000000;
+    public static float LightValue =60;
     public static float UnitBonus = 40;
+    public static float HeavyValue =70;
+    
     UnitType workerType;
     UnitType baseType;
     UnitType barracksType;
     UnitType heavyType;
     UnitType lightType;
-    UnitType ResourceType;
-    UnitType RangedType;
+    UnitType resourceType;
+    UnitType rangedType;
     
     public MCEvaluation(UnitTypeTable utt)
     {
@@ -35,8 +36,8 @@ public class MCEvaluation extends EvaluationFunction {
         barracksType = utt.getUnitType("Barracks");
         heavyType = utt.getUnitType("Heavy");
         lightType = utt.getUnitType("Light");
-        ResourceType = utt.getUnitType("Resource");
-        RangedType = utt.getUnitType("Ranged");
+        resourceType = utt.getUnitType("Resource");
+        rangedType = utt.getUnitType("Ranged");
     }
     
     public float evaluate(int maxplayer, int minplayer, GameState gs) {
@@ -55,9 +56,13 @@ public class MCEvaluation extends EvaluationFunction {
             {
                 anyunit = true;
                 score += u.getResources() * ResourceInWorker;
-                score += UnitBonus * u.getCost()*Math.sqrt( u.getHitPoints()/u.getMaxHitPoints());
-                if(u.getType() == baseType) { score += BaseValue *Math.sqrt( u.getHitPoints()/u.getMaxHitPoints()); break;}
-                if(u.getType() == barracksType) { score += BarracksValue*Math.sqrt( u.getHitPoints()/u.getMaxHitPoints());break;}
+                //score += UnitBonus * u.getCost()*Math.sqrt( u.getHitPoints()/u.getMaxHitPoints());
+                if(u.getType() == baseType) { score += BaseValue * u.getCost()*Math.sqrt( u.getHitPoints()/u.getMaxHitPoints()); break;}
+                if(u.getType() == workerType) { score += WorkerValue * u.getCost()*Math.sqrt( u.getHitPoints()/u.getMaxHitPoints());break;}
+                if(u.getType() == barracksType) { score += BarracksValue* u.getCost()*Math.sqrt( u.getHitPoints()/u.getMaxHitPoints());break;}
+                if(u.getType() == rangedType) { score += RangedValue* u.getCost()*Math.sqrt( u.getHitPoints()/u.getMaxHitPoints());break;}
+                if(u.getType() == lightType) { score += LightValue* u.getCost()*Math.sqrt( u.getHitPoints()/u.getMaxHitPoints());break;}
+                if(u.getType() == heavyType) { score += HeavyValue* u.getCost()*Math.sqrt( u.getHitPoints()/u.getMaxHitPoints());break;}
                 
             }
         }

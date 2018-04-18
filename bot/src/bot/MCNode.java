@@ -6,6 +6,8 @@ import ai.core.AIWithComputationBudget;
 import ai.core.ParameterSpecification;
 import ai.evaluation.EvaluationFunction;
 import ai.evaluation.SimpleSqrtEvaluationFunction3;
+import ai.mcts.MCTSNode;
+import ai.mcts.naivemcts.NaiveMCTSNode;
 import ai.mcts.naivemcts.UnitActionTableEntry;
 import ai.mcts.uct.UCTNode;
 
@@ -40,8 +42,11 @@ public class MCNode
    public ArrayList<MCNode>ChildNodes = new ArrayList<MCNode>();
    private ArrayList<MCUnitActions> UnitActions;
    
-   private static double C = 0.5;
+   private static double C = 0.05;
    private Random r = new Random();
+ 
+   //0 for endgame 1 for MaxPlayer -1 for MinPlayer
+   private int NodeType =0;
    
    public double wins =0;
    public int visits = 0;
@@ -132,7 +137,7 @@ public class MCNode
    
    public MCNode GetChild(int MaxPlayer, int MinPlayer) throws Exception
    {
-	   if(ChildNodes.size() < MaxBreadth && HasMoreAction)
+	   if((ChildNodes.size() < MaxBreadth && HasMoreAction))// ||  (r.nextDouble()< C))
 	   {
 		   MCNode c = AddChild(MaxPlayer, MinPlayer); 
 		   return c;
@@ -144,9 +149,41 @@ public class MCNode
 		   return c.GetChild(MaxPlayer, MinPlayer);
 	   }
 	   return this;
+   }
+   
+   public MCNode EpislonChildGet(int MaxPlayer, int MinPlayer, float E0, float eg ) throws Exception
+   {
+	   if(ChildNodes.size() > 0 && r.nextFloat() >= E0 )
+	   {
+		   return GetGreedyChild(eg).EpislonChildGet(MaxPlayer, MinPlayer, E0, eg);
+	   }
+	   else
+	   {
+		   return GetChild(MaxPlayer, MinPlayer);
+	   }
+   }
+   
+   public MCNode GetGreedyChild(double EG)
+   {
+	   MCNode GreedyChild = null;
 	   
-
-
+	   if(r.nextFloat() >= EG) 
+	   {
+           for(MCNode c: ChildNodes)
+           {
+                   // max node:
+                   if (GreedyChild==null || (c.wins/c.visits)>(c.wins/c.visits)) 
+                   {
+                       GreedyChild = c;
+                   }                            
+           }
+    	   return GreedyChild;
+       } 
+	   else 
+	   {
+           // choose one at random from the ones seen so far:
+           return this.ChildNodes.get(r.nextInt(ChildNodes.size()));
+       }
    }
    
    public MCNode AddChild(int MaxPlayer,int MinPlayer) throws Exception

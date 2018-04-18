@@ -15,25 +15,33 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
+
+import javax.naming.ldap.StartTlsRequest;
+
 import rts.GameState;
+import rts.PhysicalGameState;
+import rts.Player;
 import rts.PlayerAction;
 import rts.PlayerActionGenerator;
+import rts.units.Unit;
 import rts.units.UnitTypeTable;
 import ai.core.InterruptibleAI;
 import ai.portfolio.*;
 import ai.minimax.*;
 import ai.abstraction.*;
+import ai.abstraction.pathfinding.AStarPathFinding;
 import ai.abstraction.pathfinding.GreedyPathFinding;
 import ai.RandomAI;
 import java.util.Map;
 import ai.abstraction.cRush.*;
+import ai.abstraction.*;
 
 
 /**
  *
  * @author santi
  */
-public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI 
+public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI 
 {
 	EvaluationFunction EvaluationMethod;
 	AI BaseAI;
@@ -49,6 +57,7 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
 	int TimeBudget = 0;
 	int LookaHead = 50;
 	int TotalPlayouts = 0;
+	boolean IsStuck = false;
 	
 	MCNode root = null;
 	GameState StartGameState;
@@ -62,19 +71,26 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
 	
     public MCKarlo(UnitTypeTable utt) 
     {
-        this(100,-1, 100, 10, new RandomBiasedAI(utt), new SimpleSqrtEvaluationFunction3());
+        this(100,-1, 1000, 15, new RandomBiasedAI(utt), new SimpleSqrtEvaluationFunction3());
         BigMapPolicy = new PortfolioAI(utt);
         LateGamePolicy = new WorkerRush(utt,new GreedyPathFinding());
     }
 
     public MCKarlo(int available_time, int MaxPlayouts, int breadth, int depth, AI AIPolicy, EvaluationFunction a_ef) 
     {
-        super(available_time, MaxPlayouts);
+        super(new AStarPathFinding(), available_time, MaxPlayouts);
         Depth = depth;
         Breadth =breadth;
         BaseAI = AIPolicy;
         EvaluationMethod = a_ef;
-
+    }
+    
+    public void ChangeInputParams(int breadth, int depth, int looka)
+    {
+    	Breadth = breadth;
+    	Depth = depth; 
+    	LookaHead = looka;
+    	
     }
     
     public final PlayerAction getAction(int player, GameState gs) throws Exception
@@ -84,22 +100,18 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
     	if(MaxPlayer ==1)MinPlayer =0;
     	else MinPlayer =1;
     	
-    	if ((gs.getPhysicalGameState().getWidth() *gs.getPhysicalGameState().getHeight()) >= 144 ) 
+    	if(gs.getPhysicalGameState().getWidth()<= 8 && gs.getTime() < 1500 )
     	{
-           return BigMapPolicy.getAction(player, gs);
+    		//return LateGamePolicy.getAction(player, gs);
     	}
-    	if(gs.getTime() > 3000)
-    	{
-    		return LateGamePolicy.getAction(player, gs);
-    	}
-    	
-    	if(gs.canExecuteAnyAction(player))
+    	if(gs.canExecuteAnyAction(player) && gs.getTime() < 4500)
     	{
     		startNewComputation(player, gs);
     		computeDuringOneGameFrame();
     		return getBestActionSoFar();
     	}
-    	else return BaseAI.getAction(MaxPlayer, StartGameState);
+    	if(IsStuck) return StuckGameRush();
+    	else return BaseAI.getAction(player, gs);
     }
 
 	@Override
@@ -154,15 +166,15 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
             //System.out.println(lastIterationTime);
 			nPlayouts++;
 		}
-      // System.out.println("Playouts : "+nPlayouts);
+     // System.out.println("Playouts : "+nPlayouts);
  }
 
 	@Override
 	public PlayerAction getBestActionSoFar() throws Exception
 	{
-        if (root.ChildNodes.size() < 1) 
+        if (root.ChildNodes.size() <= 1) 
         {
-            return BaseAI.getAction(MaxPlayer, StartGameState);
+        	return BigMapPolicy.getAction(MaxPlayer, StartGameState);
         }
         else 
         { 
@@ -194,6 +206,54 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
 		return null;
 	}
 	
+    public Unit getNearestEnemy(PhysicalGameState pgs, Player p, Unit u)
+    {
+    	 Unit closestEnemy = null;
+         int closestDistance = 0;
+         for(Unit u2:pgs.getUnits()) 
+         {
+             if (u2.getPlayer()>=0 && u2.getPlayer()!=p.getID()) { 
+                 int d = Math.abs(u2.getX() - u.getX()) + Math.abs(u2.getY() - u.getY());
+                 if (closestEnemy==null || d<closestDistance) {
+                     closestEnemy = u2;
+                     closestDistance = d;
+                 }
+             }
+         }
+         if (closestEnemy!=null)
+         {
+             return closestEnemy;
+         }
+         else
+         {
+        	 return null;
+         }
+    }
+    
+    public PlayerAction AllAttackNearestEnemy(Player p, GameState gs, List<Unit> UL)
+    {
+    	for(Unit u : UL)
+    	{
+        PhysicalGameState pgs = gs.getPhysicalGameState();
+        attack(u, getNearestEnemy(pgs, p, u));
+    	}
+    	return translateActions(MaxPlayer, gs);
+         
+    }
+    
+    public PlayerAction StuckGameRush()
+    {
+    	List<Unit> UL = new ArrayList<Unit>();
+    	for(Unit u: StartGameState.getPhysicalGameState().getUnits())
+    	{
+    		if(u.getPlayer() == MaxPlayer && u.getType().canAttack)
+    		{
+    			UL.add(u);
+    		}
+    	}
+    	return AllAttackNearestEnemy(StartGameState.getPlayer(MaxPlayer), StartGameState, UL);
+    }
+	
 	public void SimulateGame(GameState gs, int time)throws Exception 
 	{
 
@@ -220,4 +280,11 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
 		if(Sgs.isComplete())return true;
 		return false;
 	}
+	
+	//Found online at https://stackoverflow.com/questions/16656651/does-java-have-a-clamp-function
+	public static float clamp(float val, float min, float max) {
+	    return Math.max(min, Math.min(max, val));
+	}
+
+	
 }
