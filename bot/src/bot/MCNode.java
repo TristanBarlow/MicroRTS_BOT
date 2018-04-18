@@ -41,7 +41,7 @@ public class MCNode
    private ArrayList<MCUnitActions> UnitActions;
    
    private static double C = 0.05;
-   private boolean TryUAs = true;
+   private Random r = new Random();
    
    public double wins =0;
    public int visits = 0;
@@ -76,13 +76,11 @@ public class MCNode
 		   }
 		   if(!gs.gameover()&& gs.winner() == -1 )
 		   {
-			   if(TryUAs) PopulateUnitActions();
-			   else PopulateUntriedMoves();
+			   PopulateUntriedMoves();
 		   }
 		   if(gs.winner() == MaxPlayer)
 		   {
-			   if(TryUAs) PopulateUnitActions();
-			   else PopulateUntriedMoves();
+			   PopulateUntriedMoves();
 		   }
 
    }
@@ -108,14 +106,12 @@ public class MCNode
 	   else if(GSCopy.canExecuteAnyAction(MaxPlayer))
 	   {
 		   Player = MaxPlayer;
-		   if(TryUAs) PopulateUnitActions();
-		   else PopulateUntriedMoves();
+		   PopulateUntriedMoves();
 	   }
 	   else if(GSCopy.canExecuteAnyAction(MinPlayer))
 	   {
 		   Player = MinPlayer;
-		   if(TryUAs) PopulateUnitActions();
-		   else PopulateUntriedMoves();
+		   PopulateUntriedMoves();
 	   }
 
    }
@@ -127,17 +123,6 @@ public class MCNode
 	   PAG.randomizeOrder();
    }
    
-   private void PopulateUnitActions() throws Exception
-   {
-	   PAG = new PlayerActionGenerator(GSCopy, Player);
-	   PAG.randomizeOrder();
-	   UnitActions = new ArrayList<MCUnitActions>();
-	   for(Pair<Unit, List<UnitAction>> UAs :PAG.getChoices())
-	   {
-		   UnitActions.add(new MCUnitActions(UAs.m_a, (ArrayList<UnitAction>)UAs.m_b));
-	   }
-   }
-   
    public double GetAverageEvaluation()
    {
 	   return wins/visits;
@@ -145,7 +130,7 @@ public class MCNode
    
    public MCNode GetChild(int MaxPlayer, int MinPlayer) throws Exception
    {
-	   if(ChildNodes.size() < MaxBreadth)
+	   if((MaxBreadth > 0 && ChildNodes.size() < MaxBreadth) || r.nextDouble() < C )
 	   {
 		   MCNode c = AddChild(MaxPlayer, MinPlayer); 
 		   return c;
@@ -165,8 +150,7 @@ public class MCNode
    public MCNode AddChild(int MaxPlayer,int MinPlayer) throws Exception
    {
 	   PlayerAction move;
-	   if(TryUAs)move = GetBiasAction();
-	   else move = GetRandomAction();
+	   move = GetRandomAction();
 	   
 	   if(move != null && Depth <= MaxDepth)
 	   {
@@ -228,42 +212,6 @@ public class MCNode
 	   return move;
    }
    
-   public PlayerAction GetBiasAction() throws Exception
-   {
-       ResourceUsage base_ru = new ResourceUsage();
-       for(Unit u:GSCopy.getUnits()) {
-           UnitAction ua = GSCopy.getUnitAction(u);
-           if (ua!=null) {
-               ResourceUsage ru = ua.resourceUsage(u, GSCopy.getPhysicalGameState());
-               base_ru.merge(ru);
-           }
-       }
-	  PlayerAction ReturnPA = new PlayerAction();
-      ReturnPA.setResourceUsage(base_ru.clone());  
-	  Random r = new Random();
-	  for(MCUnitActions UAs : UnitActions)
-	  {
-		  UnitAction ua;
-		  ResourceUsage r2;
-		  int iter = 0;
-		  ua = UAs.GetBestAction();
-          r2 = ua.resourceUsage(UAs.unit, GSCopy.getPhysicalGameState());
-          if (!ReturnPA.getResourceUsage().consistentWith(r2, GSCopy)) 
-          {
-		  do{
-			  ua = UAs.GetRandomAction();
-			  r2 = ua.resourceUsage(UAs.unit, GSCopy.getPhysicalGameState());
-			  iter++;
-		  	}while(!ReturnPA.getResourceUsage().consistentWith(r2, GSCopy)&& iter < UAs.ValidActions.size());
-          }
-		  if (GSCopy.getUnit(UAs.unit.getID())==null) throw new Error("Issuing an action to an inexisting unit!!!");
-          ReturnPA.getResourceUsage().merge(r2);
-          ReturnPA.addUnitAction(UAs.unit, ua);
-		  
-	  }
-	
-	  return ReturnPA;
-   }
    public int GetVisits()
    {
 	   return visits;

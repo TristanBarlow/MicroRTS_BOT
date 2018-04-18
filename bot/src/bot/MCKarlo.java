@@ -61,7 +61,7 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
 	
     public MCKarlo(UnitTypeTable utt) 
     {
-        this(100,-1, 65, 7, new RandomBiasedAI(utt), new MCEvaluation(utt));
+        this(100,-1, 50, 10, new RandomAI(utt), new MCEvaluation(utt));
         BigMapPolicy = new PortfolioAI(utt);
     }
 
@@ -82,11 +82,10 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
     	if(MaxPlayer ==1)MinPlayer =0;
     	else MinPlayer =1;
     	
-    	if ((gs.getPhysicalGameState().getWidth() *gs.getPhysicalGameState().getHeight()) >= 144) 
+    	if ((gs.getPhysicalGameState().getWidth() *gs.getPhysicalGameState().getHeight()) >= 144 ) 
     	{
            return BigMapPolicy.getAction(player, gs);
     	}
-    	
     	if(gs.canExecuteAnyAction(player))
     	{
     		startNewComputation(player, gs);
@@ -148,7 +147,7 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
             //System.out.println(lastIterationTime);
 			nPlayouts++;
 		}
-       // System.out.println("Playouts : "+nPlayouts);
+       System.out.println("Playouts : "+nPlayouts);
  }
 
 	@Override
@@ -200,8 +199,8 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
             } 
             else 
             {
-              //  gs.issue(BaseAI.getAction(MaxPlayer, gs));
-                //gs.issue(BaseAI.getAction(MinPlayer, gs));
+                gs.issue(BaseAI.getAction(MaxPlayer, gs));
+                gs.issue(BaseAI.getAction(MinPlayer, gs));
             	gs.cycle();
             }
         }while(!gameover && gs.getTime()<time);   

@@ -11,31 +11,51 @@ public class MCUnitActions
 {
 	Unit unit;
 	ArrayList<UnitAction> ValidActions;
+	ArrayList<UnitAction> ActionsPermant;
+	Random r;
 	public MCUnitActions(Unit u, ArrayList<UnitAction> UAL)
 	{
 		unit = u;
-		ValidActions = UAL;
+		ValidActions = (ArrayList<UnitAction>) UAL.clone();
+		ActionsPermant = (ArrayList<UnitAction>) UAL.clone();
+		r = new Random();
 	}
 	public UnitAction GetBestAction()
 	{
-		for(UnitAction UA : ValidActions)
-		{
-			if(UA.getType() == UnitAction.TYPE_ATTACK_LOCATION) return UA;
-			if(UA.getType() == UnitAction.TYPE_RETURN) return UA;
-			if(UA.getType() == UnitAction.TYPE_HARVEST) return UA;
-			if(UA.getType() == UnitAction.TYPE_PRODUCE) return UA;
-		}
-		if(!ValidActions.isEmpty())return ValidActions.get(0);
-		else return null;
 		
+		for(int i =0; i < ValidActions.size();)
+		{
+			switch(ValidActions.get(i).getType())
+			{
+			  case UnitAction.TYPE_ATTACK_LOCATION:
+				  return ValidActions.remove(i);
+				  
+			  case UnitAction.TYPE_RETURN:
+				  return ValidActions.remove(i);
+
+			  case UnitAction.TYPE_HARVEST:
+				  return ValidActions.remove(i);
+
+			  case UnitAction.TYPE_PRODUCE:
+				  return ValidActions.remove(i);
+			}
+			i++;
+		}
+		return null;
+		
+	}
+	
+	public void Reset()
+	{
+		ValidActions = (ArrayList<UnitAction>)ActionsPermant.clone();
 	}
 	public UnitAction GetRandomAction()
 	{
-		Random r = new Random();
+
 		if(!ValidActions.isEmpty())
 		{
-			return ValidActions.get(r.nextInt(ValidActions.size()));
+			return ValidActions.remove(r.nextInt(ValidActions.size()));
 		}
-		else return null;
+		else return new UnitAction(UnitAction.TYPE_NONE);
 	}
 }
