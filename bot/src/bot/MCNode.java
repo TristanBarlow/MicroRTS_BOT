@@ -40,7 +40,7 @@ public class MCNode
    public ArrayList<MCNode>ChildNodes = new ArrayList<MCNode>();
    private ArrayList<MCUnitActions> UnitActions;
    
-   private static double C = 0.05;
+   private static double C = 0.5;
    private Random r = new Random();
    
    public double wins =0;
@@ -53,6 +53,7 @@ public class MCNode
    public int Breadth = 0;
    
    public PlayerActionGenerator PAG = null;
+   public boolean HasMoreAction = false;
    
    public int Player = 0;
    public int WinningPlayer = -1;
@@ -121,6 +122,7 @@ public class MCNode
 	   
 	   PAG = new PlayerActionGenerator(GSCopy, Player);
 	   PAG.randomizeOrder();
+	   HasMoreAction = true;
    }
    
    public double GetAverageEvaluation()
@@ -130,12 +132,12 @@ public class MCNode
    
    public MCNode GetChild(int MaxPlayer, int MinPlayer) throws Exception
    {
-	   if((MaxBreadth > 0 && ChildNodes.size() < MaxBreadth) || r.nextDouble() < C )
+	   if(ChildNodes.size() < MaxBreadth && HasMoreAction)
 	   {
 		   MCNode c = AddChild(MaxPlayer, MinPlayer); 
 		   return c;
 	   }
-	   else if(!EndGame)
+	   else if(!EndGame && ChildNodes.size() > 0)
 	   {
 		   ChildNodes.sort((m2, m1) -> Double.compare(m1.GetSortValue(this), m2.GetSortValue(this)));
 		   MCNode c = ChildNodes.get(0);
@@ -160,6 +162,7 @@ public class MCNode
 		   Breadth++;
 		   return n;
 	   }
+	   HasMoreAction = false;
 	   return this;
 
    }

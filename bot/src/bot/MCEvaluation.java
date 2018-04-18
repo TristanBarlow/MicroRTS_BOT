@@ -56,8 +56,8 @@ public class MCEvaluation extends EvaluationFunction {
                 anyunit = true;
                 score += u.getResources() * ResourceInWorker;
                 score += UnitBonus * u.getCost()*Math.sqrt( u.getHitPoints()/u.getMaxHitPoints());
-                if(u.getType() == baseType) score += BaseValue * u.getCost()*Math.sqrt( u.getHitPoints()/u.getMaxHitPoints());
-                //if(u.getType() == barracksType) score += BarracksValue * u.getCost()*Math.sqrt( u.getHitPoints()/u.getMaxHitPoints());
+                if(u.getType() == baseType) { score += BaseValue *Math.sqrt( u.getHitPoints()/u.getMaxHitPoints()); break;}
+                if(u.getType() == barracksType) { score += BarracksValue*Math.sqrt( u.getHitPoints()/u.getMaxHitPoints());break;}
                 
             }
         }

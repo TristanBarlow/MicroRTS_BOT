@@ -62,7 +62,7 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
 	
     public MCKarlo(UnitTypeTable utt) 
     {
-        this(100,-1, 50, 10, new RandomBiasedAI(utt), new MCEvaluation(utt));
+        this(100,-1, 100, 5, new RandomBiasedAI(utt), new SimpleSqrtEvaluationFunction3());
         BigMapPolicy = new PortfolioAI(utt);
         LateGamePolicy = new WorkerRush(utt,new GreedyPathFinding());
     }
@@ -144,7 +144,7 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
             	GameState gs2 = node.GSCopy.clone();
             	SimulateGame(gs2, gs2.getTime() + LookaHead );
                 int time = gs2.getTime() - StartGameState.getTime();
-            	Eval  = EvaluationMethod.evaluate(MaxPlayer, MinPlayer, gs2);//*Math.pow(0.99,time/tDepth);
+            	Eval  = EvaluationMethod.evaluate(MaxPlayer, MinPlayer, gs2)*Math.pow(0.99,time/tDepth);
             	//System.out.println(Eval);
             	node.wins += Eval;
             	node.visits++;
@@ -208,7 +208,6 @@ public class MCKarlo extends AIWithComputationBudget implements InterruptibleAI
             {
                 gs.issue(BaseAI.getAction(MaxPlayer, gs));
                 gs.issue(BaseAI.getAction(MinPlayer, gs));
-            	gs.cycle();
             }
         }while(!gameover && gs.getTime()<time);   
 		
