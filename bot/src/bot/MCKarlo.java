@@ -73,7 +73,7 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
 	
     public MCKarlo(UnitTypeTable utt) 
     {
-        this(100,-1, 1000, 10, new RandomBiasedAI(utt), new SimpleSqrtEvaluationFunction3());
+        this(100,-1, 1000, 5, new RandomBiasedAI(utt), new SimpleSqrtEvaluationFunction3());
         BigMapPolicy = new PortfolioAI(utt);
         LateGamePolicy = new WorkerRush(utt,new GreedyPathFinding());
         IsGreedy = true;
@@ -114,7 +114,7 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
     		IsStuck = false;
     		return StuckGameRush();
     	}
-    	else return BaseAI.getAction(player, gs);
+    	else return StuckGameRush();
     }
     
 
