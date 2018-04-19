@@ -27,16 +27,19 @@ public class MCNode
    public ArrayList<MCNode>MaybeList;
    
    public ArrayList<PlayerAction> TriedMoves;
+   public ArrayList<PlayerAction> DiscardedCheapMoves;
    
-   public double CheapEvaluation = -1.0;
+   public double CheapEvaluation = 0;
    public PlayerAction CheapAction;
-   public int MaxCheapRuns =2000;
+   public int MaxCheapRuns = 10000;
+   boolean CanBuildBarrakcs = false;
+   
    
    private static double C = 0.05;
-   private static double AttackValue = 1.4;
-   private static double HarvestValue = 1.8;
-   private static double ReturnValue = 2.0;
-   private static double ProduceValue = 1.4;
+   private static double AttackValue = 0.2;
+   private static double HarvestValue = 0.3;
+   private static double ReturnValue = 0.3;
+   private static double ProduceValue = 0.2;
    
    private Random r = new Random();
  
@@ -86,6 +89,7 @@ public class MCNode
 		   }
 		   ChildNodes = new ArrayList<MCNode>();
 		   TriedMoves = new ArrayList<PlayerAction>();
+		   DiscardedCheapMoves = new ArrayList<PlayerAction>();
 
    }
    
@@ -121,6 +125,7 @@ public class MCNode
 	   }
 	   ChildNodes = new ArrayList<MCNode>();
 	   TriedMoves = new ArrayList<PlayerAction>();
+	   DiscardedCheapMoves = new ArrayList<PlayerAction>();
 
    }
    
@@ -137,35 +142,25 @@ public class MCNode
 	   return TotalEvaluation/Visits;
    }
    
-   public MCNode GetChild(int MaxPlayer, int MinPlayer) throws Exception
+   public MCNode GetChild(int MaxPlayer, int MinPlayer, boolean buildBarracks) throws Exception
    {
 	   if(Depth >= MaxDepth) return this;
 	   
-	   if((ChildNodes.size() < MaxBreadth) &&HasMoreAction && r.nextDouble() > 0.4)
+	   CanBuildBarrakcs = buildBarracks;
+	   
+	   if((ChildNodes.size() < MaxBreadth) && HasMoreAction)
 	   {
 		   MCNode c = AddBiasChild(MaxPlayer, MinPlayer);
 		   return c;
 	   }
 	   
-	   else if(!EndGame && ChildNodes.size() > 0)
+	   else if(!EndGame && ChildNodes.size() > 0 )
 	   {
 		   ChildNodes.sort((m2, m1) -> Double.compare(m1.GetSortValue(this), m2.GetSortValue(this)));
 		   MCNode c = ChildNodes.get(0);
-		   return c.GetChild(MaxPlayer, MinPlayer);
+		   return c.GetChild(MaxPlayer, MinPlayer, buildBarracks);
 	   }
 	   return AddRandomChild(MaxPlayer, MinPlayer);
-   }
-   
-   public MCNode EpislonChildGet(int MaxPlayer, int MinPlayer, float E0, float eg ) throws Exception
-   {
-	   if(ChildNodes.size() > 0 && r.nextFloat() <= E0+Evaluation )
-	   {
-		   return GetGreedyChild(eg, MaxPlayer, MinPlayer).EpislonChildGet(MaxPlayer, MinPlayer, E0, eg);
-	   }
-	   else
-	   {
-		   return GetChild(MaxPlayer, MinPlayer);
-	   }
    }
    
    public MCNode GetGreedyChild(double EG, int MinPlayer, int MaxPlayer)   
@@ -202,21 +197,24 @@ public class MCNode
    
    public MCNode AddRandomChild(int MaxPlayer, int MinPlayer) throws Exception
    {
-	   PlayerAction FinalAction = null;
-	   if(CheapAction == null)
-	   {
-		   if(TriedMoves.size()<1) return this;
-	      FinalAction = TriedMoves.remove(r.nextInt(TriedMoves.size()));
-	   }
+	   PlayerAction FinalAction = GetBestMove();
 	   GameState gs = GSCopy.cloneIssue(FinalAction);	
 	   MCNode n = new MCNode(MaxPlayer,MinPlayer, FinalAction, gs.clone(), this );
 	   ChildNodes.add(n);
 	   return n;
    }
    
+   public PlayerAction GetBestMove()
+   {
+	   if(DiscardedCheapMoves.size() > 0) return DiscardedCheapMoves.remove(DiscardedCheapMoves.size()-1);	   
+	   
+	   else if(TriedMoves.size() >0 ) return TriedMoves.remove(r.nextInt(TriedMoves.size()));
+	   
+	   else return new PlayerAction();
+   }
+   
    public MCNode AddBiasChild(int MaxPlayer,int MinPlayer) throws Exception
    {
-	   PAG.randomizeOrder();
 	   CheapAction = null;
 	   CheapEvaluation = -0.1;
 	   int iter = 0;
@@ -229,6 +227,7 @@ public class MCNode
 			   GameState gs = GSCopy.cloneIssue(CheapAction);	
 			   MCNode n = new MCNode(MaxPlayer,MinPlayer, CheapAction, gs.clone(), this );
 			   ChildNodes.add(n);
+			   //HasMoreAction = false;
 			   return n;
 		   }
 		   
@@ -243,8 +242,7 @@ public class MCNode
 			   PlayerAction FinalAction = null;
 			   if(CheapAction == null)
 			   {
-				   if(TriedMoves.size()<1) return this;
-			      FinalAction = TriedMoves.remove(r.nextInt(TriedMoves.size()));
+			      FinalAction =  GetBestMove();
 			   }
 			   else 
 			   {
@@ -265,9 +263,6 @@ public class MCNode
    }
    public MCNode AddChild(int MaxPlayer,int MinPlayer) throws Exception
    {
-
-
-
 	   PlayerAction move = GetRandomAction();
 	   if(move != null)
 	   {
@@ -289,43 +284,49 @@ public class MCNode
 	   double r = 0;
 	   double p = 0;
 	   int size = 0;
-	   for(Unit u : gs.getUnits())
+	   
+	   boolean ShouldAdd = true;
+	   for(Pair<Unit, UnitAction> UnitPair : move.getActions())
 	   {
-		   try 
+		   size++;
+		   if(UnitPair.m_b.getType() == UnitAction.TYPE_ATTACK_LOCATION)
 		   {
-			   if(u.getPlayer() == Player && move.getAction(u) != null);
-			   {
-				   size++;
-				   if(move.getAction(u).getType() == UnitAction.TYPE_ATTACK_LOCATION)
-				   {
-					   a += 1*AttackValue;
-				   }
-				   else if(move.getAction(u).getType() == UnitAction.TYPE_HARVEST)
-				   {
-					   h += 1*HarvestValue;
-				   }
-				   else if(move.getAction(u).getType() == UnitAction.TYPE_PRODUCE)
-				   {
-					   p += 1*ProduceValue;
-				   }
-				   else if(move.getAction(u).getType() == UnitAction.TYPE_RETURN)
-				   {
-					   r += 1*ReturnValue;
-				   }
-			   }
+			   a += 1*AttackValue;
 		   }
-		   catch(NullPointerException e)
+		   else if(UnitPair.m_b.getType() == UnitAction.TYPE_HARVEST)
 		   {
-			  // System.out.println("null");
+			   h += 1*HarvestValue;
+		   }
+		   else if(UnitPair.m_b.getType() == UnitAction.TYPE_PRODUCE)
+		   {
+			  if(UnitPair.m_a.getType().canHarvest && !CanBuildBarrakcs )
+			  {
+				  p = -100000;
+				  ShouldAdd = false;
+			  }
+			   p += 1*ProduceValue;
+		   }
+		   else if(UnitPair.m_b.getType() == UnitAction.TYPE_RETURN)
+		   {
+			   r += 1*ReturnValue;
 		   }
 	   }
 	   double result = a+h+r+p/size;
-	   if(result > CheapEvaluation)
+	   if(result > CheapEvaluation || CheapEvaluation == 0)
 		   {
+		   		if(CheapAction != null)
+		   		{
+		   			DiscardedCheapMoves.add(CheapAction);
+		   		}
+		   		ShouldAdd = false;
 		    	CheapEvaluation = result;
 		    	CheapAction = move;
 		   }
-	  // TriedMoves.add(move);
+	   if(ShouldAdd)
+	   {
+		   TriedMoves.add(move);
+	   }
+	   else {ShouldAdd = false;}
    }
    
    

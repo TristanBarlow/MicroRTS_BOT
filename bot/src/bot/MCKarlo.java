@@ -67,11 +67,13 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
 
 	boolean ComputationComplete = true;
 	
+	boolean CanBuildBarracks = false;
+	
 	PlayerAction FinalAction;
 	
     public MCKarlo(UnitTypeTable utt) 
     {
-        this(100,-1, 100000, 6, new RandomBiasedAI(utt), new SimpleSqrtEvaluationFunction3());
+        this(100,-1, 1000, 5, new RandomBiasedAI(utt), new SimpleSqrtEvaluationFunction3());
     }
 
     public MCKarlo(int available_time, int MaxPlayouts, int breadth, int depth, AI AIPolicy, EvaluationFunction a_ef) 
@@ -97,7 +99,11 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
     	MaxPlayer = player;
     	if(MaxPlayer ==1)MinPlayer =0;
     	else MinPlayer =1;
-    	if(gs.getPhysicalGameState().getWidth()* gs.getPhysicalGameState().getHeight() >= 144)RushTimer = 1200;
+    	if(gs.getPhysicalGameState().getWidth()* gs.getPhysicalGameState().getHeight() >= 144)
+    		{
+    			RushTimer = 2000;
+    			CanBuildBarracks = true;
+    		}
 
     	if(gs.canExecuteAnyAction(player) && gs.getTime() < RushTimer && !IsStuck)
     	{
@@ -139,9 +145,7 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
         	long currentTime = System.currentTimeMillis();
             if (cutOffTime >0 && currentTime> cutOffTime) break;
             
-        	node = root.GetChild(MaxPlayer, MinPlayer);
-        	tDepth = node.Depth;
-        	System.out.println("Depth : " + tDepth);
+        	node = root.GetChild(MaxPlayer, MinPlayer, CanBuildBarracks);
 
             double Eval  = 0;
 
@@ -257,14 +261,6 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
         }while(!gameover && gs.getTime()<time);   
 		
 	}  
-	public boolean SimulateMove(GameState Sgs, PlayerAction move)throws Exception
-	{
-		Sgs.issue(move);
-		Sgs.issue(BaseAI.getAction(MinPlayer, Sgs));
-		Sgs.cycle();
-		if(Sgs.isComplete())return true;
-		return false;
-	}
 	
 	//Found online at https://stackoverflow.com/questions/16656651/does-java-have-a-clamp-function
 	public static float clamp(float val, float min, float max) {
