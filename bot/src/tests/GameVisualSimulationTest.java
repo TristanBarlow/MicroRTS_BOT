@@ -177,7 +177,7 @@ public class GameVisualSimulationTest
     	do {
     		j++;
 
-    	Results = PlayAllMaps(false, PLayerWeCareAbout);
+    	Results = PlayAllMaps(true, PLayerWeCareAbout);
     	if(Results.size() < 1)return;
     	
     	int PlayerWins = 0;
@@ -222,7 +222,7 @@ public class GameVisualSimulationTest
     	        AI ai2 = new MCKarlo(utt);
     	       // ai1.ChangeInputParams(b, d, l);
     	        
-    	        AI ai1 = new MCKarlo(utt);//RandomBiasedAI();//
+    	        AI ai1 = new UCT(utt);//RandomBiasedAI();//
     	        
     	        JFrame w = null;
     	        if(Visualise)w = PhysicalGameStatePanel.newVisualizer(gs,640,640,false,PhysicalGameStatePanel.COLORSCHEME_BLACK);

@@ -31,7 +31,7 @@ public class MCNode
    
    public double CheapEvaluation = 0;
    public PlayerAction CheapAction;
-   public int MaxCheapRuns = 10000;
+   public int MaxCheapRuns = 1000;
    boolean CanBuildBarrakcs = false;
    
    
@@ -206,13 +206,14 @@ public class MCNode
 	   return n;
    }
    
-   public PlayerAction GetBestMove()
+   public PlayerAction GetBestMove() throws Exception
    {
 	   if(DiscardedCheapMoves.size() > 0) return DiscardedCheapMoves.remove(DiscardedCheapMoves.size()-1);	   
 	   
 	   else if(TriedMoves.size() >0 ) return TriedMoves.remove(r.nextInt(TriedMoves.size()));
 	   
 	   else return new PlayerAction();
+
    }
    
    public MCNode AddBiasChild(int MaxPlayer,int MinPlayer) throws Exception

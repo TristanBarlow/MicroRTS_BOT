@@ -1,7 +1,3 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package bot;
 
 import ai.core.AI;
@@ -38,127 +34,200 @@ import ai.abstraction.*;
 
 
 /**
+ *Not really sure what you call this algorithm Its a bit of this a bit of that
  *
- * @author santi
  */
 public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI 
 {
+	//Evaluation Method Used To determine the effectiveness of the input gamestate
 	EvaluationFunction EvaluationMethod;
+	
+	//The AI used in the simulated playouts. The more expensive the Action get the less simulations
 	AI BaseAI;
-
-	List<PlayerAction> GoodActions;
-	Map<Float, GameState> Plays = new HashMap<Float, GameState>();
 	
-	int Depth = 10;
-	int Breadth = 10;
-	int MinPlayer = 1;
-	int MaxPlayer =0;
-	int RunsThisMove = 0;
-	int TimeBudget = 0;
-	int LookaHead = 50;
-	int TotalPlayouts = 0;
+	//Arguably the most important variable. This is the root node that will be used to get access to the rest
+	//and be responsible for future nodes being created and where the move that will be used will be stored
+	private MCNode root = null;
 	
-	boolean IsStuck = false;
+	//This is a copy of the gamestate When the getAction function is called.
+	private GameState StartGameState;
 	
-	MCNode root = null;
-	GameState StartGameState;
+	//The player We want to lose
+	private int MinPlayer = 1;
 	
-	int RushTimer = 3000;
-
-	boolean ComputationComplete = true;
+	//The player We want to win
+	private int MaxPlayer = 0;
 	
-	boolean CanBuildBarracks = false;
+	//MaxDepth Dictates the Maximum Depth the Tree can go
+	private int MaxDepth = 10;
 	
-	PlayerAction FinalAction;
+	//MaxBreadth this will limit the amount of children each node can have.
+	//Not really used anymore, Was used to force algorithm Depth.
+	private int MaxBreadth = 10;
 	
+	//How Long the simulations should look ahead to see value of an action
+	private int LookaHead = 50;
+	
+	//When the GameState.time() received from the getAction call goes above this it will trigger the rush.
+	private int RushTimer = 3000;
+	
+	//Reset at The Start time of each computation using a global to reduce the amount of times the current time
+	// function is called.
+ 	private long StartTime = 0;
+ 	
+ 	// Reset at the start of each computation, this is calculated by the start time + the time budget 
+    private long CutOffTime = 0;
+	
+    // This is the amount of time in milliseconds the AI is allowed to do its computation;
+    private int TimeBudget = 0;
+    
+	//Annoying the AI tried to build barracks on small maps. Which is a bad idea.
+	//This will make any actions that involve production of A barracks receive a low Quick Value
+	private boolean CanBuildBarracks = false;
+	
+	//Used When In the late game to trigger a rush. This is to stop those annoying moments when its winning
+	//But can't see far enough into the board to see a win state
+	private boolean IsStuck = false;
+	
+	
+	/**
+	 * The Main constructor that is called. However this just calls another constructor where
+	 * The initialisation is done.
+	 * @param utt
+	 */
     public MCKarlo(UnitTypeTable utt) 
     {
-        this(100,-1, 1000, 10, new RandomBiasedAI(utt), new SimpleSqrtEvaluationFunction3());
+        this(100, 1000, 10, new RandomBiasedAI(utt), new SimpleSqrtEvaluationFunction3());
     }
-
-    public MCKarlo(int available_time, int MaxPlayouts, int breadth, int depth, AI AIPolicy, EvaluationFunction a_ef) 
+    
+    /**
+     * The Main constructor for MCKarlo where the initialisation of the AIs policies are done
+     * @param MaxComutationTime This goes into the parent class and initialises the TIME_BUDGET variable
+     * @param breadth			Sets the MaxBreadth for each node of the Search tree
+     * @param depth				Sets the MaxDepth of the Search Tree
+     * @param AIPolicy			This Sets the Simulation Playout Policy.
+     * @param EF				This sets the Evaluation function used to determine the effectiveness of the actions
+     */
+    public MCKarlo(int MaxComutationTime, int breadth, int depth, AI AIPolicy, EvaluationFunction EF) 
     {
-        super(new AStarPathFinding(), available_time, MaxPlayouts);
-        Depth = depth;
-        Breadth =breadth;
+    	//Parent Initialisation 
+        super(new AStarPathFinding());
+        
+        //MCKarlo Initialisation
+        TimeBudget = MaxComutationTime;
+        MaxDepth = depth;
+        MaxBreadth =breadth;
         BaseAI = AIPolicy;
-        EvaluationMethod = a_ef;
+        EvaluationMethod = EF;
     }
     
-    public void ChangeInputParams(int breadth, int depth, int looka)
-    {
-    	Breadth = breadth;
-    	Depth = depth; 
-    	LookaHead = looka;
-    	
-    }
-    
+    /**
+     * This is the main function that is used to get the players next action
+     * @param player is the ID of the AIs current player number
+     * @param gs     is the current state of the Game.
+     */
     public final PlayerAction getAction(int player, GameState gs) throws Exception
     {	
-
+    	
+    	//Setting the Max and Min Players, You only know what player you are when you're required to make
+    	// a move, I stole the Idea of the 1-player bit from Rich. TY!
     	MaxPlayer = player;
-    	if(MaxPlayer ==1)MinPlayer =0;
-    	else MinPlayer =1;
+    	MinPlayer = 1-player;
+    	
+    	//A heuristic for large Maps, this will alter how the AI will playout as on bigger maps
+    	// its good at producing but doesn't have the depth to see enemies to attack.
     	if(gs.getPhysicalGameState().getWidth()* gs.getPhysicalGameState().getHeight() >= 144)
     		{
     			RushTimer = 2000;
+    			MaxDepth = 5;
     			CanBuildBarracks = true;
     		}
-
+    	
+    	//This Is where the main computation algorithms are called on the outermost layer
+    	// only called if the current game time is less than the rush timer
+    	// and it Isn't stuck
     	if(gs.canExecuteAnyAction(player) && gs.getTime() < RushTimer && !IsStuck)
     	{
+    		//Refresh node and other variables
     		startNewComputation(player, gs);
+    		
+    		//Compute until times out
     		computeDuringOneGameFrame();
+    		
+    		//Return the best it got
     		return getBestActionSoFar();
     	}
+    	
+    	// If it gets here its either stuck or the timer is up
+    	// Making it rush if the timer isn't up can sometimes reset it back to a state it can
+    	// start trying to be clever again
     	else if(IsStuck) 
     	{ 
     		IsStuck = false;
     		return StuckGameRush();
     	}
+    	
+    	//if the timer is up and its not stuck the search and destroy.
     	else return StuckGameRush();
     }
     
-
-	@Override
+    /**
+     * Override Function from the inherited Parent. This function will reset the variables used in each computation
+     * It needs to be here so I just used it, despite the useless @param
+     * @param player not used Just here as The Max and Min Player are determined beforehand.
+     * @param gs     used to set the startGameState to keep a constant copy
+     */
 	public void startNewComputation(int player, GameState gs) throws Exception
 	{
-	 	long start = System.currentTimeMillis();
-        long cutOffTime = start +  TIME_BUDGET;
+		//Get the current time and set the start time for this computation
+		StartTime = System.currentTimeMillis();
+		
+		// Set the time at which this computation needs to end
+		CutOffTime = StartTime + TimeBudget;
+		
+		//Record the starting state of the game
 		StartGameState = gs;
-		root = new MCNode(MaxPlayer, MinPlayer, gs.clone(), Depth, Breadth, cutOffTime);
+		
+		//Create the root node, with all the required parameters 
+		root = new MCNode(MaxPlayer, MinPlayer, gs.clone(), MaxDepth, MaxBreadth, CutOffTime);
 	}
 
-	@Override
+
+	/**
+	 * Override Function from the inherited Parent. This is where the main computing will occur for this frame.
+	 * The function will finish when the current time is greater than the CutOffTime
+	 */
 	public void computeDuringOneGameFrame() throws Exception
 	{
-	 	long start = System.currentTimeMillis();
+		//The number of times it loops through the main Computation while loop
         int nPlayouts = 0;
-        int numberOfNodes = 0;
-        long cutOffTime = start +  TIME_BUDGET;
-        long lastIterationTime = 0;
+        
+        //Not necessary, Added for readability.
         boolean Compute = true;
-        MCNode node = null;
-        int tDepth = 0;
+        
         while(Compute) 
         {
+        	//Get the current time
         	long currentTime = System.currentTimeMillis();
-            if (cutOffTime >0 && currentTime> cutOffTime) break;
+        	
+        	//Check to see if the AI is out of time and needs to return a move
+            if (CutOffTime > 0 && currentTime> CutOffTime) break;
             
-        	node = root.GetChild(MaxPlayer, MinPlayer, CanBuildBarracks);
-
-            double Eval  = 0;
+            //The select part of the algorithm, variations of this function are called internally
+            //to hopefully provide a more useful node for simulation
+        	MCNode node = root.GetChild(MaxPlayer, MinPlayer, CanBuildBarracks);
+        	
+            double eval  = 0;
 
             while(node != null)
             {
             	GameState gs2 = node.GSCopy.clone();
-            	SimulateGame(gs2, gs2.getTime() + LookaHead );
-                int time = gs2.getTime() - StartGameState.getTime();
-                double TEval = EvaluationMethod.evaluate(MaxPlayer, MinPlayer, gs2);//Math.pow(0.99,time/tDepth);
+            	SimulateGame(gs2, gs2.getTime() + LookaHead);
+                double tEval = EvaluationMethod.evaluate(MaxPlayer, MinPlayer, gs2);
         	
-                Eval  += TEval; 
-            	node.Evaluation = TEval;
-            	node.TotalEvaluation = Eval;
+                eval  += tEval; 
+            	node.Evaluation = tEval;
+            	node.TotalEvaluation = eval;
             	node.Visits++;
             	//System.out.println("Evaluation = " + node.GetAverageEvaluation());
             	node = node.ParentNode;
@@ -190,14 +259,13 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
 	{
         StartGameState= null;
         root = null;
-        RunsThisMove = 0;
 	}
 
 	@Override
 	public AI clone()
 	{
 		// TODO Auto-generated method stub
-		return new MCKarlo(TimeBudget, -1, Breadth, Depth, BaseAI, EvaluationMethod);
+		return new MCKarlo(TimeBudget, MaxBreadth, MaxDepth, BaseAI, EvaluationMethod);
 	}
 	
 	@Override
@@ -261,11 +329,6 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
         }while(!gameover && gs.getTime()<time);   
 		
 	}  
-	
-	//Found online at https://stackoverflow.com/questions/16656651/does-java-have-a-clamp-function
-	public static float clamp(float val, float min, float max) {
-	    return Math.max(min, Math.min(max, val));
-	}
 
 	
 }
