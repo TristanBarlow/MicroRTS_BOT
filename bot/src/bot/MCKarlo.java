@@ -59,24 +59,19 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
 	int TotalPlayouts = 0;
 	
 	boolean IsStuck = false;
-	boolean IsGreedy = false;
 	
 	MCNode root = null;
 	GameState StartGameState;
+	
+	int RushTimer = 3000;
 
 	boolean ComputationComplete = true;
 	
 	PlayerAction FinalAction;
-	ArrayList<GameState> States;
-	AI BigMapPolicy;
-	AI LateGamePolicy;
 	
     public MCKarlo(UnitTypeTable utt) 
     {
-        this(100,-1, 1000, 5, new RandomBiasedAI(utt), new SimpleSqrtEvaluationFunction3());
-        BigMapPolicy = new PortfolioAI(utt);
-        LateGamePolicy = new WorkerRush(utt,new GreedyPathFinding());
-        IsGreedy = true;
+        this(100,-1, 100000, 6, new RandomBiasedAI(utt), new SimpleSqrtEvaluationFunction3());
     }
 
     public MCKarlo(int available_time, int MaxPlayouts, int breadth, int depth, AI AIPolicy, EvaluationFunction a_ef) 
@@ -102,8 +97,9 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
     	MaxPlayer = player;
     	if(MaxPlayer ==1)MinPlayer =0;
     	else MinPlayer =1;
+    	if(gs.getPhysicalGameState().getWidth()* gs.getPhysicalGameState().getHeight() >= 144)RushTimer = 1200;
 
-    	if(gs.canExecuteAnyAction(player) && gs.getTime() < 2500 && !IsStuck)
+    	if(gs.canExecuteAnyAction(player) && gs.getTime() < RushTimer && !IsStuck)
     	{
     		startNewComputation(player, gs);
     		computeDuringOneGameFrame();
@@ -136,23 +132,16 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
         long cutOffTime = start +  TIME_BUDGET;
         long lastIterationTime = 0;
         boolean Compute = true;
-        MCNode node;
+        MCNode node = null;
         int tDepth = 0;
         while(Compute) 
         {
         	long currentTime = System.currentTimeMillis();
             if (cutOffTime >0 && currentTime> cutOffTime) break;
-            try 
-            {	
-            	if(IsGreedy) node = root.EpislonChildGet(MaxPlayer, MinPlayer, 0.0f, 0.4f);
-            	else node = root.GetChild(MaxPlayer, MinPlayer);
-            	tDepth = node.Depth;
-            	//System.out.println("Depth : " + tDepth);
-            }
-            catch(NullPointerException e)
-            {
-            	break;
-            }
+            
+        	node = root.GetChild(MaxPlayer, MinPlayer);
+        	tDepth = node.Depth;
+        	System.out.println("Depth : " + tDepth);
 
             double Eval  = 0;
 
@@ -162,7 +151,8 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
             	SimulateGame(gs2, gs2.getTime() + LookaHead );
                 int time = gs2.getTime() - StartGameState.getTime();
                 double TEval = EvaluationMethod.evaluate(MaxPlayer, MinPlayer, gs2);//Math.pow(0.99,time/tDepth);
-            	Eval  += TEval; 
+        	
+                Eval  += TEval; 
             	node.Evaluation = TEval;
             	node.TotalEvaluation = Eval;
             	node.Visits++;
@@ -173,16 +163,15 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
             //System.out.println(lastIterationTime);
 			nPlayouts++;
 		}
-     // System.out.println("Playouts : "+nPlayouts);
+     System.out.println("Playouts : "+nPlayouts);
  }
 
 	@Override
 	public PlayerAction getBestActionSoFar() throws Exception
 	{
-        if (root.ChildNodes.size() <= 1) 
+        if (root.ChildNodes.size() <= 0) 
         {
-        	IsStuck = true;
-        	return StuckGameRush();
+        	return BaseAI.getAction(MaxPlayer,StartGameState);
         }
         else 
         { 

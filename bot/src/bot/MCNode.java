@@ -1,10 +1,19 @@
 package bot;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Random;
+
+import javax.xml.crypto.dsig.keyinfo.KeyValue;
+
 import rts.GameState;
 import rts.PlayerAction;
 import rts.PlayerActionGenerator;
+import rts.UnitAction;
+import rts.units.Unit;
+import util.Pair;
 
 
 public class MCNode
@@ -12,9 +21,23 @@ public class MCNode
    public PlayerAction Move;
    public MCNode ParentNode;
    public GameState GSCopy;
-   public ArrayList<MCNode>ChildNodes = new ArrayList<MCNode>();
+   
+   public ArrayList<MCNode>ChildNodes;
+   
+   public ArrayList<MCNode>MaybeList;
+   
+   public ArrayList<PlayerAction> TriedMoves;
+   
+   public double CheapEvaluation = -1.0;
+   public PlayerAction CheapAction;
+   public int MaxCheapRuns =2000;
    
    private static double C = 0.05;
+   private static double AttackValue = 1.4;
+   private static double HarvestValue = 1.8;
+   private static double ReturnValue = 2.0;
+   private static double ProduceValue = 1.4;
+   
    private Random r = new Random();
  
    public double TotalEvaluation =0;
@@ -24,8 +47,12 @@ public class MCNode
    public int MaxDepth = 10;
    public int Depth = 1;
    
+   public int NumberOfUnits = 0;
+   
    public int MaxBreadth =0;
    public int Breadth = 0;
+   
+   public boolean ShouldSimulate = false;
    
    public PlayerActionGenerator PAG = null;
    public boolean HasMoreAction = false;
@@ -57,9 +84,13 @@ public class MCNode
 		   {
 			   PopulateUntriedMoves();
 		   }
+		   ChildNodes = new ArrayList<MCNode>();
+		   TriedMoves = new ArrayList<PlayerAction>();
 
    }
    
+   
+   //Main COnstructor for most Nodes
    public MCNode(int MaxPlayer, int MinPlayer, PlayerAction move, GameState gs, MCNode parent) throws Exception
    {
 	   	if(Player == 1)MinPlayer = 0;
@@ -88,6 +119,8 @@ public class MCNode
 		   Player = MinPlayer;
 		   PopulateUntriedMoves();
 	   }
+	   ChildNodes = new ArrayList<MCNode>();
+	   TriedMoves = new ArrayList<PlayerAction>();
 
    }
    
@@ -106,12 +139,11 @@ public class MCNode
    
    public MCNode GetChild(int MaxPlayer, int MinPlayer) throws Exception
    {
-	   if(!HasMoreAction)return this;
 	   if(Depth >= MaxDepth) return this;
 	   
-	   if((ChildNodes.size() < MaxBreadth))
+	   if((ChildNodes.size() < MaxBreadth) &&HasMoreAction && r.nextDouble() > 0.4)
 	   {
-		   MCNode c = AddChild(MaxPlayer, MinPlayer); 
+		   MCNode c = AddBiasChild(MaxPlayer, MinPlayer);
 		   return c;
 	   }
 	   
@@ -121,12 +153,12 @@ public class MCNode
 		   MCNode c = ChildNodes.get(0);
 		   return c.GetChild(MaxPlayer, MinPlayer);
 	   }
-	   return this;
+	   return AddRandomChild(MaxPlayer, MinPlayer);
    }
    
    public MCNode EpislonChildGet(int MaxPlayer, int MinPlayer, float E0, float eg ) throws Exception
    {
-	   if(ChildNodes.size() > 0 && r.nextFloat() <= E0 )
+	   if(ChildNodes.size() > 0 && r.nextFloat() <= E0+Evaluation )
 	   {
 		   return GetGreedyChild(eg, MaxPlayer, MinPlayer).EpislonChildGet(MaxPlayer, MinPlayer, E0, eg);
 	   }
@@ -136,7 +168,7 @@ public class MCNode
 	   }
    }
    
-   public MCNode GetGreedyChild(double EG, int MinPlayer, int MaxPlayer)
+   public MCNode GetGreedyChild(double EG, int MinPlayer, int MaxPlayer)   
    {
 	   MCNode GreedyChild = null;
 	   
@@ -168,11 +200,75 @@ public class MCNode
        }
    }
    
+   public MCNode AddRandomChild(int MaxPlayer, int MinPlayer) throws Exception
+   {
+	   PlayerAction FinalAction = null;
+	   if(CheapAction == null)
+	   {
+		   if(TriedMoves.size()<1) return this;
+	      FinalAction = TriedMoves.remove(r.nextInt(TriedMoves.size()));
+	   }
+	   GameState gs = GSCopy.cloneIssue(FinalAction);	
+	   MCNode n = new MCNode(MaxPlayer,MinPlayer, FinalAction, gs.clone(), this );
+	   ChildNodes.add(n);
+	   return n;
+   }
+   
+   public MCNode AddBiasChild(int MaxPlayer,int MinPlayer) throws Exception
+   {
+	   PAG.randomizeOrder();
+	   CheapAction = null;
+	   CheapEvaluation = -0.1;
+	   int iter = 0;
+	   while(true)
+	   {
+		   iter++;
+		   
+		   if(iter > MaxCheapRuns && CheapAction != null)
+		   {
+			   GameState gs = GSCopy.cloneIssue(CheapAction);	
+			   MCNode n = new MCNode(MaxPlayer,MinPlayer, CheapAction, gs.clone(), this );
+			   ChildNodes.add(n);
+			   return n;
+		   }
+		   
+		   PlayerAction move = GetRandomAction();
+		   if(move != null)
+		   {
+			   GameState gs = GSCopy.cloneIssue(move);
+			   EvaluateMove(gs, move);
+		   }
+		   else
+		   {
+			   PlayerAction FinalAction = null;
+			   if(CheapAction == null)
+			   {
+				   if(TriedMoves.size()<1) return this;
+			      FinalAction = TriedMoves.remove(r.nextInt(TriedMoves.size()));
+			   }
+			   else 
+			   {
+				   FinalAction = CheapAction;
+			   }
+			   GameState gs = GSCopy.cloneIssue(FinalAction);	
+			   MCNode n = new MCNode(MaxPlayer,MinPlayer, FinalAction, gs.clone(), this );
+			   ChildNodes.add(n);
+			   Breadth++;
+			   HasMoreAction = false;
+			   return n;
+			   
+		   }
+	   }
+	   
+
+
+   }
    public MCNode AddChild(int MaxPlayer,int MinPlayer) throws Exception
    {
-	   PlayerAction move;
-	   move = GetRandomAction();
-	   
+
+
+
+	   PlayerAction move = GetRandomAction();
 	   if(move != null)
 	   {
 		   GameState gs = GSCopy.cloneIssue(move);
@@ -185,6 +281,53 @@ public class MCNode
 	   return this;
 
    }
+   
+   public void EvaluateMove(GameState gs, PlayerAction move)
+   {
+	   double h = 0;
+	   double a = 0;
+	   double r = 0;
+	   double p = 0;
+	   int size = 0;
+	   for(Unit u : gs.getUnits())
+	   {
+		   try 
+		   {
+			   if(u.getPlayer() == Player && move.getAction(u) != null);
+			   {
+				   size++;
+				   if(move.getAction(u).getType() == UnitAction.TYPE_ATTACK_LOCATION)
+				   {
+					   a += 1*AttackValue;
+				   }
+				   else if(move.getAction(u).getType() == UnitAction.TYPE_HARVEST)
+				   {
+					   h += 1*HarvestValue;
+				   }
+				   else if(move.getAction(u).getType() == UnitAction.TYPE_PRODUCE)
+				   {
+					   p += 1*ProduceValue;
+				   }
+				   else if(move.getAction(u).getType() == UnitAction.TYPE_RETURN)
+				   {
+					   r += 1*ReturnValue;
+				   }
+			   }
+		   }
+		   catch(NullPointerException e)
+		   {
+			  // System.out.println("null");
+		   }
+	   }
+	   double result = a+h+r+p/size;
+	   if(result > CheapEvaluation)
+		   {
+		    	CheapEvaluation = result;
+		    	CheapAction = move;
+		   }
+	  // TriedMoves.add(move);
+   }
+   
    
    public void Update(double result)
    {
