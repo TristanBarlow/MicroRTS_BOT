@@ -73,7 +73,7 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
 	
     public MCKarlo(UnitTypeTable utt) 
     {
-        this(100,-1, 1000, 5, new RandomBiasedAI(utt), new SimpleSqrtEvaluationFunction3());
+        this(100,-1, 1000, 10, new RandomBiasedAI(utt), new SimpleSqrtEvaluationFunction3());
     }
 
     public MCKarlo(int available_time, int MaxPlayouts, int breadth, int depth, AI AIPolicy, EvaluationFunction a_ef) 

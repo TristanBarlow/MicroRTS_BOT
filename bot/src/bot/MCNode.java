@@ -148,18 +148,20 @@ public class MCNode
 	   
 	   CanBuildBarrakcs = buildBarracks;
 	   
-	   if((ChildNodes.size() < MaxBreadth) && HasMoreAction)
-	   {
-		   MCNode c = AddBiasChild(MaxPlayer, MinPlayer);
-		   return c;
-	   }
-	   
-	   else if(!EndGame && ChildNodes.size() > 0 )
+
+	   if(!EndGame && ChildNodes.size() > 0  && r.nextDouble() < 0.4)
 	   {
 		   ChildNodes.sort((m2, m1) -> Double.compare(m1.GetSortValue(this), m2.GetSortValue(this)));
 		   MCNode c = ChildNodes.get(0);
 		   return c.GetChild(MaxPlayer, MinPlayer, buildBarracks);
 	   }
+	   
+	   else if((ChildNodes.size() < MaxBreadth) && HasMoreAction)
+	   {
+		   MCNode c = AddBiasChild(MaxPlayer, MinPlayer);
+		   return c;
+	   }
+	   
 	   return AddRandomChild(MaxPlayer, MinPlayer);
    }
    
