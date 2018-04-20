@@ -34,13 +34,13 @@ public class MCNode
    private int MaxSampleIterations = 5000;
    private boolean ShouldSampleMoves = true;
    
-   
-   
-   private static double C = 0.05;
    private static double AttackValue = 2;
    private static double HarvestValue = 5;
    private static double ReturnValue = 1;
    private static double ProduceValue = 1;
+   
+   private double Exploitation = 0.4;
+   private double EpsilonG = 0.4;
    
    private Random r = new Random();
  
@@ -49,9 +49,7 @@ public class MCNode
    public int Visits = 0;
    
    public int MaxDepth = 10;
-   public int Depth = 1;
-   
-   public int NumberOfUnits = 0;
+   public int Depth = 0;
    
    public int MaxBreadth =0;
    public int Breadth = 0;
@@ -60,7 +58,6 @@ public class MCNode
    public boolean HasMoreAction = false;
    
    public int Player = 0;
-   public int WinningPlayer = -1;
    public long CutOffTime = 0;
 
    public boolean EndGame = false;
@@ -155,12 +152,12 @@ public class MCNode
 	   CanBuildBarrakcs = buildBarracks;
 	   
 
-	   if(!EndGame && ChildNodes.size() > 0  && r.nextDouble() >= 0.4)
+	   if(!EndGame && ChildNodes.size() > 0  && r.nextDouble() <= Exploitation)
 	   {
 		   //ChildNodes.sort((m2, m1) -> Double.compare(m1.GetSortValue(this), m2.GetSortValue(this)));
 		   //MCNode c = ChildNodes.get(0);
 		   //return c.GetChild(MaxPlayer, MinPlayer, buildBarracks);
-		   return GetGreedyChild(0, MaxPlayer, MinPlayer).GetChild(MaxPlayer, MinPlayer, buildBarracks);
+		   return GetGreedyChild(MaxPlayer, MinPlayer).GetChild(MaxPlayer, MinPlayer, buildBarracks);
 	   }
 	   else if(HasMoreAction)
 	   {
@@ -170,11 +167,11 @@ public class MCNode
 	   return this;
    }
    
-   public MCNode GetGreedyChild(double EG, int MaxPlayer, int MinPlayer)   
+   public MCNode GetGreedyChild(int MaxPlayer, int MinPlayer)   
    {
 	   MCNode GreedyChild = null;
 	   
-	   if(r.nextFloat() >= EG) 
+	   if(r.nextFloat() >= EpsilonG) 
 	   {
 	           for(MCNode c: ChildNodes)
 	           {
@@ -273,8 +270,7 @@ public class MCNode
 		   Breadth++;
 		   return n;
 	   }
-	   HasMoreAction = false;
-	   return this;
+	   return null;
 
    }
   
@@ -325,20 +321,6 @@ public class MCNode
 	   return result;
    }
    
-   
-   public void Update(double result)
-   {
-	   Visits += 1;
-	   TotalEvaluation = result;
-   }
-   
-   public final double GetSortValue(MCNode c)
-   {
-	   double d =  c.TotalEvaluation/c.Visits + Math.sqrt(2*Math.log(Visits)/c.Visits);
-
-	   return d;
-   }
-
    public MCNode GetMostVisitedNode()
    {
 	   ChildNodes.sort((m2, m1) -> Integer.compare(m1.Visits, m2.Visits));
@@ -366,15 +348,5 @@ public class MCNode
    {
 	   ChildNodes.sort((m2, m1) -> Double.compare(m1.TotalEvaluation, m2.TotalEvaluation));
 	   return ChildNodes.get(0);
-   }
-   
-   public int GetVisits()
-   {
-	   return Visits;
-   }
-   
-   public double GetWins()
-   {
-	   return TotalEvaluation;
    }
 }

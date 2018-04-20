@@ -219,17 +219,18 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
             //to hopefully provide a more useful node for simulation
         	MCNode node = root.GetChild(MaxPlayer, MinPlayer, CanBuildBarracks);
         	
-        	//Evaluati
+        	//Evaluation to be used when propagating the TotalEvaluation
             double eval  = 0;
 
+            //GameState Simulation
         	GameState gs2 = node.GSCopy.clone();
         	SimulateGame(gs2, gs2.getTime() + LookaHead);
             int time = gs2.getTime() - StartGameState.getTime();
             double tEval = EvaluationMethod.evaluate(MaxPlayer, MinPlayer, gs2)*Math.pow(0.99,time/10.0);
             
+            //Propagate the values up the tree
             while(node != null)
             {
-               
                 eval  += tEval; 
             	node.Evaluation = tEval;
             	node.TotalEvaluation = eval;
@@ -237,47 +238,56 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
             	node = node.ParentNode;
             }
 			nPlayouts++;
-
 		}
-		System.out.println("Playouts: "+ nPlayouts);
  }
 
-	@Override
+	/**
+	 * This is an override function from the inherited parent class. It is called
+	 * when the AI has run out of time, proved it has moves to return it will, 
+	 * else The BaseAI is used as a return instead.
+	 */
 	public PlayerAction getBestActionSoFar() throws Exception
 	{
+		//check to see if the root node has any children. If there is no children then return the BaseAI action
         if (root.ChildNodes.size() <= 0) 
         {
         	return BaseAI.getAction(MaxPlayer,StartGameState);
         }
         else 
-        { 
+        {
+        	//If there are children get the best node. Using visit first then the evaluation rating of the node. 
             MCNode n = root.GetBestNode();
         	return n.Move;
         }
         
 	}
 
-	@Override
-	public void reset()
-	{
-        StartGameState= null;
-        root = null;
-	}
-
-	@Override
+	/**
+	 * Override Function, I don't use it.
+	 */
 	public AI clone()
 	{
 		// TODO Auto-generated method stub
 		return new MCKarlo(TimeBudget, MaxBreadth, MaxDepth, BaseAI, EvaluationMethod);
 	}
 	
-	@Override
+	/**
+	 * Override Function, I don't use it.
+	 */
 	public List<ParameterSpecification> getParameters()
 	{
 		// TODO Auto-generated method stub
 		return null;
 	}
 	
+	/**
+	 * Gets the nearest Enemy to a given unit for a given player. This is taken from the sample bots
+	 * as it is quite trivial and standard i Didn't see a point of writing my own.
+	 * @param pgs the physical gamestate of the board to be examined
+	 * @param p the player owning the unit
+	 * @param u	the given unit as the reference points
+	 * @return returns the unit closest to the unit passed as an argument
+	 */
     public Unit getNearestEnemy(PhysicalGameState pgs, Player p, Unit u)
     {
     	 Unit closestEnemy = null;
@@ -302,18 +312,35 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
          }
     }
 
+    /**
+     * A heuristic based attack. Used late game as the AI, especially on big maps struggle to find targets.
+     * @return returns the playeraction that contains the unit actions that make the units attack the nearest enemy unit.
+     */
     public PlayerAction StuckGameRush()
     {
+    	//go though all units stored in the physical gamestate
     	for(Unit u: StartGameState.getPhysicalGameState().getUnits())
     	{
+    		//check to see If the we own the unit
     		if(u.getPlayer() == MaxPlayer && u.getType().canAttack)
     		{
+    			//An inherited function that will created the required unit action that will let the current unit u attack the nearest enemy
     	        attack(u, getNearestEnemy(StartGameState.getPhysicalGameState(), StartGameState.getPlayer(MaxPlayer), u));
     		}
     	}
+    	
+    	//inherited function that will turn the unit actions into a player action
     	return translateActions(MaxPlayer, StartGameState);
     }
 	
+    /**
+     * This function is taken from the sample bots. This just loops through and plays out the actions from the given time. 
+     * This is quite a costly function, reducing the time will increase the amount of computations you can do but
+     * will may make the evaluation worse depending on how long the unit action takes to execute
+     * @param gs		  The gamestate to be progressed 
+     * @param time		  How long should the gamestate be progressed
+     * @throws Exception  This is bad practice. But a lot of the authors code throws exceptions rather than handling them
+     */
 	public void SimulateGame(GameState gs, int time)throws Exception 
 	{
 
@@ -332,6 +359,5 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
         }while(!gameover && gs.getTime()<time);   
 		
 	}  
-
 	
 }
