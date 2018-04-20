@@ -68,6 +68,9 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
 	//How Long the simulations should look ahead to see value of an action
 	private int LookaHead = 50;
 	
+	//How many moves with a certain heuristic score a node needs before Starting a Move
+	private int MaxBiasSamples = 50;
+	
 	//When the GameState.time() received from the getAction call goes above this it will trigger the rush.
 	private int RushTimer = 3000;
 	
@@ -139,7 +142,6 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
     	if(gs.getPhysicalGameState().getWidth()* gs.getPhysicalGameState().getHeight() >= 144)
     		{
     			RushTimer = 2000;
-    			MaxDepth = 5;
     			CanBuildBarracks = true;
     		}
     	
@@ -189,7 +191,7 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
 		StartGameState = gs;
 		
 		//Create the root node, with all the required parameters 
-		root = new MCNode(MaxPlayer, MinPlayer, gs.clone(), MaxDepth, MaxBreadth, CutOffTime);
+		root = new MCNode(MaxPlayer, MinPlayer, gs.clone(), MaxDepth, MaxBreadth, CutOffTime, MaxBiasSamples);
 	}
 
 
@@ -217,26 +219,27 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
             //to hopefully provide a more useful node for simulation
         	MCNode node = root.GetChild(MaxPlayer, MinPlayer, CanBuildBarracks);
         	
+        	//Evaluati
             double eval  = 0;
 
+        	GameState gs2 = node.GSCopy.clone();
+        	SimulateGame(gs2, gs2.getTime() + LookaHead);
+            int time = gs2.getTime() - StartGameState.getTime();
+            double tEval = EvaluationMethod.evaluate(MaxPlayer, MinPlayer, gs2)*Math.pow(0.99,time/10.0);
+            
             while(node != null)
             {
-            	GameState gs2 = node.GSCopy.clone();
-            	SimulateGame(gs2, gs2.getTime() + LookaHead);
-                double tEval = EvaluationMethod.evaluate(MaxPlayer, MinPlayer, gs2);
-        	
+               
                 eval  += tEval; 
             	node.Evaluation = tEval;
             	node.TotalEvaluation = eval;
             	node.Visits++;
-            	//System.out.println("Evaluation = " + node.GetAverageEvaluation());
             	node = node.ParentNode;
             }
-           // lastIterationTime = System.currentTimeMillis() - currentTime;
-            //System.out.println(lastIterationTime);
 			nPlayouts++;
+
 		}
-     System.out.println("Playouts : "+nPlayouts);
+		System.out.println("Playouts: "+ nPlayouts);
  }
 
 	@Override
