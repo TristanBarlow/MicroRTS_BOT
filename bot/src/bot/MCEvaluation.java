@@ -14,7 +14,7 @@ public class MCEvaluation extends EvaluationFunction {
     public static float ResourceValue = 20;
     public static float BarracksValue = 10;
     public static float ResourceInWorker = 10;
-    public static float BaseValue = 20;
+    public static float BaseValue = 50;
     public static float RangedValue = 80;
     public static float WorkerValue = 1000000000;
     public static float LightValue =60;
@@ -40,14 +40,14 @@ public class MCEvaluation extends EvaluationFunction {
         rangedType = utt.getUnitType("Ranged");
     }
     
-    public float evaluate(int maxplayer, int minplayer, GameState gs) {
-        float s1 = base_score(maxplayer,gs);
-        float s2 = base_score(minplayer,gs);
+    public float evaluate2(int maxplayer, int minplayer, GameState gs,float BV) {
+        float s1 = base_score(maxplayer,gs, BV);
+        float s2 = base_score(minplayer,gs, 0);
         float total = s1+s2;
         return  (s1/total) - (s2/total);
     }
     
-    public float base_score(int player, GameState gs) {
+    public float base_score(int player, GameState gs, float BV) {
         PhysicalGameState pgs = gs.getPhysicalGameState();
         float score = gs.getPlayer(player).getResources()*ResourceValue;
         boolean anyunit = false;
@@ -57,9 +57,9 @@ public class MCEvaluation extends EvaluationFunction {
                 anyunit = true;
                 score += u.getResources() * ResourceInWorker;
                 score += UnitBonus * u.getCost()*Math.sqrt( u.getHitPoints()/u.getMaxHitPoints());
-             //  if(u.getType() == baseType) { score += BaseValue * u.getCost()*Math.sqrt( u.getHitPoints()/u.getMaxHitPoints()); break;}
+                if(u.getType() == baseType) { score += BaseValue * u.getCost()*Math.sqrt( u.getHitPoints()/u.getMaxHitPoints()); break;}
                // if(u.getType() == workerType) { score += WorkerValue * u.getCost()*Math.sqrt( u.getHitPoints()/u.getMaxHitPoints());break;}
-                //if(u.getType() == barracksType) { score += BarracksValue* u.getCost()*Math.sqrt( u.getHitPoints()/u.getMaxHitPoints());break;}
+                if(u.getType() == barracksType) { score += BV* u.getCost()*Math.sqrt( u.getHitPoints()/u.getMaxHitPoints());break;}
                 if(u.getType() == rangedType) { score += RangedValue* u.getCost()*Math.sqrt( u.getHitPoints()/u.getMaxHitPoints());break;}
                 //if(u.getType() == lightType) { score += LightValue* u.getCost()*Math.sqrt( u.getHitPoints()/u.getMaxHitPoints());break;}
                 //if(u.getType() == heavyType) { score += HeavyValue* u.getCost()*Math.sqrt( u.getHitPoints()/u.getMaxHitPoints());break;}
@@ -73,5 +73,11 @@ public class MCEvaluation extends EvaluationFunction {
     public float upperBound(GameState gs) {
         return 1.0f;
     }
+
+	@Override
+	public float evaluate(int maxplayer, int minplayer, GameState gs) {
+		// TODO Auto-generated method stub
+		return 0;
+	}
 }
 

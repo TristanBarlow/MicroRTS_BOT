@@ -142,7 +142,7 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
     	if(gs.getPhysicalGameState().getWidth()* gs.getPhysicalGameState().getHeight() >= 144)
     		{
     			RushTimer = 2000;
-    			CanBuildBarracks = true;
+    			CanBuildBarracks = false;
     		}
     	
     	//This Is where the main computation algorithms are called on the outermost layer
@@ -191,7 +191,7 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
 		StartGameState = gs;
 		
 		//Create the root node, with all the required parameters 
-		root = new MCNode(MaxPlayer, MinPlayer, gs.clone(), MaxDepth, MaxBreadth, CutOffTime, MaxBiasSamples);
+		root = new MCNode(MaxPlayer, MinPlayer, gs.clone(), MaxDepth, MaxBreadth, CutOffTime, MaxBiasSamples, CanBuildBarracks );
 	}
 
 
@@ -217,7 +217,10 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
             
             //The select part of the algorithm, variations of this function are called internally
             //to hopefully provide a more useful node for simulation
-        	MCNode node = root.GetChild(MaxPlayer, MinPlayer, CanBuildBarracks);
+        	MCNode node = root.GetChild(MaxPlayer, MinPlayer);
+        	
+        	//Sanity check to make sure no calls are done if GetChild returns null(it shouldn't)
+        	if(node == null)return;
         	
         	//Evaluation to be used when propagating the TotalEvaluation
             double eval  = 0;
@@ -226,18 +229,18 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
         	GameState gs2 = node.GSCopy.clone();
         	SimulateGame(gs2, gs2.getTime() + LookaHead);
             int time = gs2.getTime() - StartGameState.getTime();
-            double tEval = EvaluationMethod.evaluate(MaxPlayer, MinPlayer, gs2)*Math.pow(0.99,time/10.0);
+            
+            //
+            double tEval = EvaluationMethod.evaluate(MaxPlayer, MinPlayer, gs2);
             
             //Propagate the values up the tree
             while(node != null)
             {
-                eval  += tEval; 
-            	node.Evaluation = tEval;
-            	node.TotalEvaluation = eval;
-            	node.Visits++;
+            	node.PropogateValue(tEval);
             	node = node.ParentNode;
             }
-			nPlayouts++;
+            
+            nPlayouts++;
 		}
  }
 
@@ -249,7 +252,7 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
 	public PlayerAction getBestActionSoFar() throws Exception
 	{
 		//check to see if the root node has any children. If there is no children then return the BaseAI action
-        if (root.ChildNodes.size() <= 0) 
+        if (root.ChildActionMap.size() <= 0) 
         {
         	return BaseAI.getAction(MaxPlayer,StartGameState);
         }

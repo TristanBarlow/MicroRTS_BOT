@@ -1,34 +1,44 @@
 package bot;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
+import util.Pair;
 
-import javax.xml.crypto.dsig.keyinfo.KeyValue;
 
 import rts.GameState;
 import rts.PlayerAction;
 import rts.PlayerActionGenerator;
+import rts.ResourceUsage;
 import rts.UnitAction;
 import rts.units.Unit;
-import util.Pair;
+
 
 
 public class MCNode
 {
    public PlayerAction Move;
-   public MCNode ParentNode;
+   public MCNode ParentNode = null;
    public GameState GSCopy;
-   
-   public ArrayList<MCNode>ChildNodes;
+   public LinkedHashMap<Integer, MCNode> ChildActionMap = null;
+   public ArrayList<MCUnitActions> UnitActionTable;
+   public ArrayList<PlayerAction> SampledMoves;
+   private double Exploitation = 0.4;
+   private double EpsilonG = 0;
+   private Random r = new Random();
+   public double TotalEvaluation =0;
+   public double Evaluation = 0;
+   public int Visits = 0;
+   public boolean EndGame = false;
+   public PlayerActionGenerator PAG = null;
+   public boolean HasMoreAction = false;
+   public int Player = 0;
    
    public ArrayList<MCActionValue> HighPotenialMoves;
-   public ArrayList<PlayerAction> RandomMoveSample;
-   
+
    public double CheapEvaluation = 0.2;
-   boolean CanBuildBarrakcs = false;
+   boolean CanBuildBarracks = false;
    private int MaxSampledMoves = 100;
    private int MaxRandomMoves = 50;
    private int MaxSampleIterations = 5000;
@@ -39,14 +49,6 @@ public class MCNode
    private static double ReturnValue = 1;
    private static double ProduceValue = 1;
    
-   private double Exploitation = 0.4;
-   private double EpsilonG = 0.4;
-   
-   private Random r = new Random();
- 
-   public double TotalEvaluation =0;
-   public double Evaluation = 0;
-   public int Visits = 0;
    
    public int MaxDepth = 10;
    public int Depth = 0;
@@ -54,25 +56,21 @@ public class MCNode
    public int MaxBreadth =0;
    public int Breadth = 0;
    
-   public PlayerActionGenerator PAG = null;
-   public boolean HasMoreAction = false;
-   
-   public int Player = 0;
+
    public long CutOffTime = 0;
 
-   public boolean EndGame = false;
-   
+ 
    
    //RootNode only
-   public MCNode(int MaxPlayer, int MinPlayer, GameState gs, int MAXDEPTH, int breadth, long cutOffTime, int MaxBiasSamples)throws Exception
+   public MCNode(int MaxPlayer, int MinPlayer, GameState gs, int MAXDEPTH, int breadth, long cutOffTime, int IsMaxBiasSamples, boolean bigMap)throws Exception
    {
-		   Player = MaxPlayer;
+	   	if(Player == 1)MinPlayer = 0;
 		   GSCopy = gs;
 		   MaxDepth = MAXDEPTH;
 		   MaxBreadth = breadth;
+		   CanBuildBarracks = bigMap;
 		   CutOffTime = cutOffTime;
-		   MaxSampledMoves = MaxBiasSamples;
-		   while(!GSCopy.canExecuteAnyAction(MaxPlayer) && !GSCopy.gameover())
+		   while(!GSCopy.canExecuteAnyAction(MaxPlayer) && !GSCopy.gameover() && !GSCopy.canExecuteAnyAction(MinPlayer) )
 		   {
 			   GSCopy.cycle();
 		   }
@@ -98,6 +96,7 @@ public class MCNode
 	   ParentNode = parent;
 	   MaxDepth = parent.MaxDepth;
 	   MaxBreadth = parent.MaxBreadth;
+	   CanBuildBarracks = parent.CanBuildBarracks;
 	   GSCopy = gs;
 	   CutOffTime = parent.CutOffTime;
 	   while(!GSCopy.canExecuteAnyAction(MaxPlayer) && !GSCopy.gameover() && !GSCopy.canExecuteAnyAction(MinPlayer) )
@@ -123,13 +122,12 @@ public class MCNode
    
    private void Init() throws Exception
    {
-	   
 	   PAG = new PlayerActionGenerator(GSCopy, Player);
-	   PAG.randomizeOrder();
-	   ChildNodes = new ArrayList<MCNode>();
+		PopulateActionTable();
+//	   PAG.randomizeOrder();
 	   HighPotenialMoves = new ArrayList<MCActionValue>();
 	   CheapEvaluation = GetCheapEvaluationBound(CheapEvaluation);
-	   RandomMoveSample = new ArrayList<PlayerAction>();
+	   SampledMoves = new ArrayList<PlayerAction>();
 	   HasMoreAction = true;
    }
    
@@ -145,23 +143,17 @@ public class MCNode
 	   return TotalEvaluation/Visits;
    }
    
-   public MCNode GetChild(int MaxPlayer, int MinPlayer, boolean buildBarracks) throws Exception
+   public MCNode GetChild(int MaxPlayer, int MinPlayer) throws Exception
    {
 	   if(Depth >= MaxDepth) return this;
-	   
-	   CanBuildBarrakcs = buildBarracks;
-	   
 
-	   if(!EndGame && ChildNodes.size() > 0  && r.nextDouble() <= Exploitation)
+	   if(!EndGame && ChildActionMap.size() > 0  && r.nextDouble() <= Exploitation)
 	   {
-		   //ChildNodes.sort((m2, m1) -> Double.compare(m1.GetSortValue(this), m2.GetSortValue(this)));
-		   //MCNode c = ChildNodes.get(0);
-		   //return c.GetChild(MaxPlayer, MinPlayer, buildBarracks);
-		   return GetGreedyChild(MaxPlayer, MinPlayer).GetChild(MaxPlayer, MinPlayer, buildBarracks);
+		   return GetGreedyChild(MaxPlayer, MinPlayer).GetChild(MaxPlayer, MinPlayer);
 	   }
-	   else if(HasMoreAction)
+	   else if(!EndGame)
 	   {
-		   return AddQuickBiasChild(MaxPlayer, MinPlayer);
+		   return AddActionTableNode(MaxPlayer, MinPlayer);
 	   }
 	   
 	   return this;
@@ -173,7 +165,7 @@ public class MCNode
 	   
 	   if(r.nextFloat() >= EpsilonG) 
 	   {
-	           for(MCNode c: ChildNodes)
+	           for(MCNode c: ChildActionMap.values())
 	           {
 	        	   if(Player == MaxPlayer)
 	        	   {
@@ -195,7 +187,7 @@ public class MCNode
 	   else 
 	   {
            // choose one at random from the ones seen so far:
-           return this.ChildNodes.get(r.nextInt(ChildNodes.size()));
+           return GetRandomChild();
        }
    }
    
@@ -204,8 +196,15 @@ public class MCNode
 	   PlayerAction FinalAction = GetMove();
 	   GameState gs = GSCopy.cloneIssue(FinalAction);	
 	   MCNode n = new MCNode(MaxPlayer,MinPlayer, FinalAction, gs.clone(), this );
-	   ChildNodes.add(n);
+	   SampledMoves.add(FinalAction);
+	   ChildActionMap.put(FinalAction.hashCode(), n);
 	   return n;
+   }
+   
+   public MCNode GetRandomChild()
+   {
+	  PlayerAction move = SampledMoves.get(r.nextInt(SampledMoves.size()));
+	  return ChildActionMap.get(move.hashCode());
    }
    
    public PlayerAction GetMove() throws Exception
@@ -215,7 +214,7 @@ public class MCNode
 	   		return HighPotenialMoves.remove(0).GetPlayerAction();
 	   }
 	   
-	   if(RandomMoveSample.size() > 0) return RandomMoveSample.remove(r.nextInt(RandomMoveSample.size()));
+	   if(SampledMoves.size() > 0) return SampledMoves.remove(r.nextInt(SampledMoves.size()));
 	   
 	   if(HasMoreAction)
 	   {
@@ -260,13 +259,16 @@ public class MCNode
 	   }
 	   return AddChild(MaxPlayer, MinPlayer, GetMove());
    }
-   public MCNode AddChild(int MaxPlayer,int MinPlayer, PlayerAction move) throws Exception
+   
+   
+  public MCNode AddChild(int MaxPlayer,int MinPlayer, PlayerAction move) throws Exception
    {
 	   if(move != null)
 	   {
 		   GameState gs = GSCopy.cloneIssue(move);
 		   MCNode n = new MCNode(MaxPlayer,MinPlayer, move, gs.clone(), this );
-		   ChildNodes.add(n);
+    	   ChildActionMap.put(move.hashCode(), n);
+    	   SampledMoves.add(move);
 		   Breadth++;
 		   return n;
 	   }
@@ -295,7 +297,7 @@ public class MCNode
 		   }
 		   else if(UnitPair.m_b.getType() == UnitAction.TYPE_PRODUCE)
 		   {
-				  if(UnitPair.m_a.getType().canHarvest && !CanBuildBarrakcs )
+				  if(UnitPair.m_a.getType().canHarvest && !CanBuildBarracks )
 				  {
 					  p = -100000;
 					 ShouldAdd = false;
@@ -313,26 +315,20 @@ public class MCNode
 	   		HighPotenialMoves.add(new MCActionValue(move, result));
 	   		return result;
 	   }
-	   else if(RandomMoveSample.size() < MaxRandomMoves  && ShouldAdd)
+	   else if(SampledMoves.size() < MaxRandomMoves  && ShouldAdd)
 	   {
-		   RandomMoveSample.add(move);
+		   SampledMoves.add(move);
 		   return result;
 	   }
 	   return result;
    }
    
-   public MCNode GetMostVisitedNode()
-   {
-	   ChildNodes.sort((m2, m1) -> Integer.compare(m1.Visits, m2.Visits));
-	   return ChildNodes.get(0);
-   }
-   
    public MCNode GetBestNode()
    {
-	   MCNode best = ChildNodes.get(0);
-	   for(MCNode mc : ChildNodes)
+	   MCNode best =null;
+	   for(MCNode mc : ChildActionMap.values())
 	   {
-		   if(mc.Visits > best.Visits)
+		   if(best == null || mc.Visits >= best.Visits)
 		   {
 			   best = mc;
 		   }
@@ -344,9 +340,98 @@ public class MCNode
 	   return best;
    }
    
-   public MCNode GetHighestEvaluationNode()
+   public void PopulateActionTable()
    {
-	   ChildNodes.sort((m2, m1) -> Double.compare(m1.TotalEvaluation, m2.TotalEvaluation));
-	   return ChildNodes.get(0);
+	   	UnitActionTable = new ArrayList<MCUnitActions>();
+	   	ChildActionMap = new LinkedHashMap<Integer, MCNode>();
+	   	int idx = 0;
+	    for (Pair<Unit, List<UnitAction>> choice : PAG.getChoices()) 
+	    {
+	    	MCUnitActions unitAction = new MCUnitActions(choice.m_a,(ArrayList<UnitAction>)choice.m_b);
+	    	UnitActionTable.add(unitAction);
+            idx++;
+	    }
+   }
+   
+   public MCNode AddActionTableNode(int MaxPlayer, int MinPlayer) throws Exception
+   {
+       for(MCUnitActions unitActions: UnitActionTable)
+       {
+    	   boolean isMinPlayer = true;
+    	   if(Player == MaxPlayer) isMinPlayer = false;
+           unitActions.CalculateActionWeights(isMinPlayer);  
+       }
+       
+       
+      //Get the resource usage, so we can check to see if we are creating valid actions
+       ResourceUsage base_ru = GetResourceUsage();
+       
+	   PlayerAction FinalAction;
+       FinalAction = new PlayerAction();
+       FinalAction.setResourceUsage(base_ru.clone());
+       for(int i =0;  i <  UnitActionTable.size(); i++)
+       {
+               MCUnitActions unitActions = UnitActionTable.get(i);
+               UnitAction ua;
+               ResourceUsage r2 = null;
+               while(true)
+               {   
+                   ua = unitActions.GetWeightedAction();
+                   
+                   if(ua == null)break;
+                   
+                   r2 = ua.resourceUsage(unitActions.GetUnit(), GSCopy.getPhysicalGameState());                            
+            	   if(FinalAction.getResourceUsage().consistentWith(r2, GSCopy)) break;
+               }
+               FinalAction.getResourceUsage().merge(r2);
+               FinalAction.addUnitAction(unitActions.GetUnit(), ua);
+       }
+       
+       MCNode node = ChildActionMap.get(FinalAction.hashCode());
+       if(node == null)
+       {
+    	  return AddChild(MaxPlayer, MinPlayer, FinalAction);
+       }
+       return node.GetChild(MaxPlayer, MinPlayer);
+   }
+   
+   public void UpdateParentActionTableEntry(PlayerAction pa, double Eval) 
+   {
+
+       for (Pair<Unit, UnitAction> ua : pa.getActions()) 
+       {
+    	   MCUnitActions UnitTable = null;
+           for(MCUnitActions UAs: UnitActionTable) 
+           {
+               if (UAs.GetUnit() == ua.m_a)UnitTable = UAs;
+           }
+           if(UnitTable == null) System.out.println("UnitTable not found");
+           UnitTable.UpdateAction(ua.m_b, Eval);
+       }
+   }
+   
+   public void PropogateValue(double Eval)
+   {
+	   TotalEvaluation += Eval;
+       Visits++;
+       if(ParentNode != null)
+       {
+    	   ParentNode.UpdateParentActionTableEntry(Move, Eval);
+       }
+   }
+   
+   private ResourceUsage GetResourceUsage()
+   {
+	   ResourceUsage r = new ResourceUsage();
+       for(Unit u:GSCopy.getUnits()) 
+       {
+           UnitAction ua = GSCopy.getUnitAction(u);
+           if (ua!=null) 
+           {
+               ResourceUsage ru = ua.resourceUsage(u, GSCopy.getPhysicalGameState());
+               r.merge(ru);
+           }
+       }
+       return r;
    }
 }
