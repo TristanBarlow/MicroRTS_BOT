@@ -128,18 +128,18 @@ public class MCNode
 		   
 		   //Cycle the gamestate until a point where any player can make a move.
 		   while(!gsCopy.canExecuteAnyAction(maxPlayer) && !gsCopy.gameover() && !gsCopy.canExecuteAnyAction(minPlayer) )
-			{
-				   gsCopy.cycle();
-			}
+		   {
+			   gsCopy.cycle();
+		   }
 		   if(gsCopy.gameover()&& gsCopy.winner() != -1 )
 		   {
 			   EndGame = true;
 		   }
-
 		   //Since it is the root, we know the next player to make a move is the maxplayer
 		   //but just a sanity check anyway. Might catch a random error
 		   else if(gsCopy.canExecuteAnyAction(maxPlayer))
 		   {
+			   player = maxPlayer;
 			   //initialise the node variables
 			   Init();
 		   }
