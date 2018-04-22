@@ -127,11 +127,18 @@ public class MCNode
 		   maxDepth = MAXDEPTH;
 		   
 		   //Cycle the gamestate until a point where any player can make a move.
-		   CycleGameState();
+		   while(!gsCopy.canExecuteAnyAction(maxPlayer) && !gsCopy.gameover() && !gsCopy.canExecuteAnyAction(minPlayer) )
+			{
+				   gsCopy.cycle();
+			}
+		   if(gsCopy.gameover()&& gsCopy.winner() != -1 )
+		   {
+			   EndGame = true;
+		   }
 
 		   //Since it is the root, we know the next player to make a move is the maxplayer
 		   //but just a sanity check anyway. Might catch a random error
-		   if(!EndGame && gsCopy.canExecuteAnyAction(maxPlayer))
+		   else if(!EndGame && gsCopy.canExecuteAnyAction(maxPlayer))
 		   {
 			   //initialise the node variables
 			   Init();
@@ -165,16 +172,23 @@ public class MCNode
 	   depth = parent.depth+1;
 	   
 	   //cycle the gamestate until a player can move... or not
-	   CycleGameState();
+	   while(!gsCopy.canExecuteAnyAction(maxPlayer) && !gsCopy.gameover() && !gsCopy.canExecuteAnyAction(minPlayer) )
+		{
+			   gsCopy.cycle();
+		}
+	   if(gsCopy.gameover()&& gsCopy.winner() != -1 )
+	   {
+		   EndGame = true;
+	   }
 	   
-	   if(!EndGame && gsCopy.canExecuteAnyAction(maxPlayer))
+	   else if(!EndGame && gsCopy.canExecuteAnyAction(maxPlayer))
 	   {
 		   //if the next player that can move is the maxplayer
 		   //we know that the move(tmove) was the minplayers move.
 		   player = maxPlayer;
 		   Init();
 	   }
-	   if(!EndGame && gsCopy.canExecuteAnyAction(minPlayer))
+	   else  if(!EndGame && gsCopy.canExecuteAnyAction(minPlayer))
 	   {
 		   //if the next player that can move is the minaplayer
 		   //we know that the move(tmove) was the maxplayers move.
