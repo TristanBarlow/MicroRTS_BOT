@@ -138,7 +138,7 @@ public class MCNode
 
 		   //Since it is the root, we know the next player to make a move is the maxplayer
 		   //but just a sanity check anyway. Might catch a random error
-		   else if(!EndGame && gsCopy.canExecuteAnyAction(maxPlayer))
+		   else if(gsCopy.canExecuteAnyAction(maxPlayer))
 		   {
 			   //initialise the node variables
 			   Init();
@@ -181,14 +181,14 @@ public class MCNode
 		   EndGame = true;
 	   }
 	   
-	   else if(!EndGame && gsCopy.canExecuteAnyAction(maxPlayer))
+	   else if(gsCopy.canExecuteAnyAction(maxPlayer))
 	   {
 		   //if the next player that can move is the maxplayer
 		   //we know that the move(tmove) was the minplayers move.
 		   player = maxPlayer;
 		   Init();
 	   }
-	   else  if(!EndGame && gsCopy.canExecuteAnyAction(minPlayer))
+	   else  if(gsCopy.canExecuteAnyAction(minPlayer))
 	   {
 		   //if the next player that can move is the minaplayer
 		   //we know that the move(tmove) was the maxplayers move.
