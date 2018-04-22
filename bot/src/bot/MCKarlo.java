@@ -40,10 +40,10 @@ import ai.abstraction.*;
 public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI 
 {
 	//Evaluation Method Used To determine the effectiveness of the input gamestate
-	EvaluationFunction EvaluationClass;
+	private EvaluationFunction EvaluationClass;
 	
 	//The AI used in the simulated playouts. The more expensive the Action get the less simulations
-	AI BaseAI;
+	private AI BaseAI;
 	
 	//Arguably the most important variable. This is the root node that will be used to get access to the rest
 	//and be responsible for future nodes being created and where the move that will be used will be stored
@@ -84,9 +84,6 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
 	//Used When In the late game to trigger a rush. This is to stop those annoying moments when its winning
 	//But can't see far enough into the board to see a win state
 	private boolean IsStuck = false;
-	
-	private int halfheight = 0;
-	
 	
 	/**
 	 * The Main constructor that is called. However this just calls another constructor where
@@ -134,9 +131,8 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
     	// its good at producing but doesn't have the depth to see enemies to attack.
     	if(gs.getPhysicalGameState().getWidth()* gs.getPhysicalGameState().getHeight() > 144 ||gs.getPhysicalGameState().getWidth()*gs.getPhysicalGameState().getHeight() == 72  )
     		{
-    			RushTimer = 3000;
+    			RushTimer = 4500;
     			canBuildBarracks = true;
-    			halfheight = gs.getPhysicalGameState().getHeight()/2;
     		}
     	
     	//This Is where the main computation algorithms are called on the outermost layer
@@ -215,12 +211,9 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
         	
         	//Sanity check to make sure no calls are done if GetChild returns null(it shouldn't)
         	if(node == null)return;
-        	
-        	//Evaluation to be used when propagating the TotalEvaluation
-            double eval  = 0;
 
             //GameState Simulation
-        	GameState gs2 = node.GSCopy.clone();
+        	GameState gs2 = node.GetGamestate().clone();
         	SimulateGame(gs2, gs2.getTime() + LookaHead);
         	
             //After the simulating is done evaluate the state of the game.
@@ -230,12 +223,11 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
             while(node != null)
             {
             	node.PropogateValue(tEval);
-            	node = node.ParentNode;
+            	node = node.GetParentNode();
             }
             
             nPlayouts++;
 		}
-        System.out.println(nPlayouts);
  }
 
 	/**
@@ -246,7 +238,7 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
 	public PlayerAction getBestActionSoFar() throws Exception
 	{
 		//check to see if the root node has any children. If there is no children then return the BaseAI action
-        if (root.ChildActionMap.size() <= 0) 
+        if (root.GetNumberOfChildren() <= 0) 
         {
         	return BaseAI.getAction(MaxPlayer,StartGameState);
         }
@@ -280,6 +272,7 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
 	/**
 	 * Gets the nearest Enemy to a given unit for a given player. This is taken from the sample bots
 	 * as it is quite trivial and standard i Didn't see a point of writing my own.
+	 * I made it static so that I could use it in the MCNode class aswell.
 	 * @param pgs the physical gamestate of the board to be examined
 	 * @param p the player owning the unit
 	 * @param u	the given unit as the reference points
