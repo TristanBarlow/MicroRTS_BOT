@@ -134,7 +134,11 @@ public class MCNode
 		   {
 			   EndGame = true;
 		   }
-		   Init();
+		   else if(gsCopy.canExecuteAnyAction(maxPlayer))
+		   {
+			   player = maxPlayer;
+			   Init();
+		   }
 
    }
    
