@@ -132,7 +132,7 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
     	
     	//A heuristic for large Maps, this will alter how the AI will playout as on bigger maps
     	// its good at producing but doesn't have the depth to see enemies to attack.
-    	if(gs.getPhysicalGameState().getWidth()* gs.getPhysicalGameState().getHeight() >= 144 ||gs.getPhysicalGameState().getWidth()*gs.getPhysicalGameState().getHeight() == 72  )
+    	if(gs.getPhysicalGameState().getWidth()* gs.getPhysicalGameState().getHeight() > 144 ||gs.getPhysicalGameState().getWidth()*gs.getPhysicalGameState().getHeight() == 72  )
     		{
     			RushTimer = 3000;
     			canBuildBarracks = true;
