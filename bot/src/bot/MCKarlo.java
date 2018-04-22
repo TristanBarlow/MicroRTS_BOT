@@ -40,7 +40,7 @@ import ai.abstraction.*;
 public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI 
 {
 	//Evaluation Method Used To determine the effectiveness of the input gamestate
-	EvaluationFunction EvaluationMethod;
+	EvaluationFunction EvaluationClass;
 	
 	//The AI used in the simulated playouts. The more expensive the Action get the less simulations
 	AI BaseAI;
@@ -61,15 +61,8 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
 	//MaxDepth Dictates the Maximum Depth the Tree can go
 	private int MaxDepth = 10;
 	
-	//MaxBreadth this will limit the amount of children each node can have.
-	//Not really used anymore, Was used to force algorithm Depth.
-	private int MaxBreadth = 10;
-	
 	//How Long the simulations should look ahead to see value of an action
-	private int LookaHead = 50;
-	
-	//How many moves with a certain heuristic score a node needs before Starting a Move
-	private int MaxBiasSamples = 50;
+	private int LookaHead = 100;
 	
 	//When the GameState.time() received from the getAction call goes above this it will trigger the rush.
 	private int RushTimer = 3000;
@@ -85,12 +78,14 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
     private int TimeBudget = 0;
     
 	//Annoying the AI tried to build barracks on small maps. Which is a bad idea.
-	//This will make any actions that involve production of A barracks receive a low Quick Value
-	private boolean CanBuildBarracks = false;
+	//This will make any unitactions searched through ignore barracks builds.
+	private boolean canBuildBarracks = false;
 	
 	//Used When In the late game to trigger a rush. This is to stop those annoying moments when its winning
 	//But can't see far enough into the board to see a win state
 	private boolean IsStuck = false;
+	
+	private int halfheight = 0;
 	
 	
 	/**
@@ -100,18 +95,17 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
 	 */
     public MCKarlo(UnitTypeTable utt) 
     {
-        this(100, 1000, 10, new RandomBiasedAI(utt), new SimpleSqrtEvaluationFunction3());
+        this(100, 10, new RandomBiasedAI(utt), new SimpleSqrtEvaluationFunction3());
     }
     
     /**
      * The Main constructor for MCKarlo where the initialisation of the AIs policies are done
      * @param MaxComutationTime This goes into the parent class and initialises the TIME_BUDGET variable
-     * @param breadth			Sets the MaxBreadth for each node of the Search tree
      * @param depth				Sets the MaxDepth of the Search Tree
      * @param AIPolicy			This Sets the Simulation Playout Policy.
      * @param EF				This sets the Evaluation function used to determine the effectiveness of the actions
      */
-    public MCKarlo(int MaxComutationTime, int breadth, int depth, AI AIPolicy, EvaluationFunction EF) 
+    public MCKarlo(int MaxComutationTime,int depth, AI AIPolicy, EvaluationFunction EF) 
     {
     	//Parent Initialisation 
         super(new AStarPathFinding());
@@ -119,9 +113,8 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
         //MCKarlo Initialisation
         TimeBudget = MaxComutationTime;
         MaxDepth = depth;
-        MaxBreadth =breadth;
         BaseAI = AIPolicy;
-        EvaluationMethod = EF;
+        EvaluationClass = EF;
     }
     
     /**
@@ -139,10 +132,11 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
     	
     	//A heuristic for large Maps, this will alter how the AI will playout as on bigger maps
     	// its good at producing but doesn't have the depth to see enemies to attack.
-    	if(gs.getPhysicalGameState().getWidth()* gs.getPhysicalGameState().getHeight() >= 144)
+    	if(gs.getPhysicalGameState().getWidth()* gs.getPhysicalGameState().getHeight() >= 144 ||gs.getPhysicalGameState().getWidth()*gs.getPhysicalGameState().getHeight() == 72  )
     		{
-    			RushTimer = 2000;
-    			CanBuildBarracks = false;
+    			RushTimer = 3000;
+    			canBuildBarracks = true;
+    			halfheight = gs.getPhysicalGameState().getHeight()/2;
     		}
     	
     	//This Is where the main computation algorithms are called on the outermost layer
@@ -191,7 +185,7 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
 		StartGameState = gs;
 		
 		//Create the root node, with all the required parameters 
-		root = new MCNode(MaxPlayer, MinPlayer, gs.clone(), MaxDepth, MaxBreadth, CutOffTime, MaxBiasSamples, CanBuildBarracks );
+		root = new MCNode(MaxPlayer, MinPlayer, gs.clone(), MaxDepth, canBuildBarracks);
 	}
 
 
@@ -228,12 +222,11 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
             //GameState Simulation
         	GameState gs2 = node.GSCopy.clone();
         	SimulateGame(gs2, gs2.getTime() + LookaHead);
-            int time = gs2.getTime() - StartGameState.getTime();
+        	
+            //After the simulating is done evaluate the state of the game.
+            double tEval = EvaluationClass.evaluate(MaxPlayer, MinPlayer, gs2);
             
-            //
-            double tEval = EvaluationMethod.evaluate(MaxPlayer, MinPlayer, gs2);
-            
-            //Propagate the values up the tree
+            //Propagate the evaluation values up the tree inside this function the individual unit move evaluation is assigned.
             while(node != null)
             {
             	node.PropogateValue(tEval);
@@ -242,6 +235,7 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
             
             nPlayouts++;
 		}
+        System.out.println(nPlayouts);
  }
 
 	/**
@@ -260,7 +254,7 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
         {
         	//If there are children get the best node. Using visit first then the evaluation rating of the node. 
             MCNode n = root.GetBestNode();
-        	return n.Move;
+        	return n.GetNodeMove();
         }
         
 	}
@@ -271,7 +265,7 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
 	public AI clone()
 	{
 		// TODO Auto-generated method stub
-		return new MCKarlo(TimeBudget, MaxBreadth, MaxDepth, BaseAI, EvaluationMethod);
+		return new MCKarlo(TimeBudget,MaxDepth, BaseAI, EvaluationClass);
 	}
 	
 	/**
@@ -291,7 +285,7 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
 	 * @param u	the given unit as the reference points
 	 * @return returns the unit closest to the unit passed as an argument
 	 */
-    public Unit getNearestEnemy(PhysicalGameState pgs, Player p, Unit u)
+    public static Unit getNearestEnemy(PhysicalGameState pgs, Player p, Unit u)
     {
     	 Unit closestEnemy = null;
          int closestDistance = 0;

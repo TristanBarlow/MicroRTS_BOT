@@ -4,10 +4,17 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Random;
+
+import ai.abstraction.Attack;
+import ai.abstraction.pathfinding.GreedyPathFinding;
+import ai.abstraction.pathfinding.PathFinding;
+import ai.montecarlo.MonteCarlo.PlayerActionTableEntry;
 import util.Pair;
 
 
 import rts.GameState;
+import rts.PhysicalGameState;
+import rts.Player;
 import rts.PlayerAction;
 import rts.PlayerActionGenerator;
 import rts.ResourceUsage;
@@ -18,12 +25,15 @@ import rts.units.Unit;
 
 public class MCNode
 {
-   public PlayerAction Move;
+
+   //This is the move that was taken to reach this node. If the 
+   private PlayerAction Move;
    public MCNode ParentNode = null;
    public GameState GSCopy;
    public LinkedHashMap<Integer, MCNode> ChildActionMap = null;
    public ArrayList<MCUnitActions> UnitActionTable;
    public ArrayList<PlayerAction> SampledMoves;
+   public ArrayList<Unit>RushUnits;
    private double Exploitation = 0.4;
    private double EpsilonG = 0;
    private Random r = new Random();
@@ -33,43 +43,27 @@ public class MCNode
    public boolean EndGame = false;
    public PlayerActionGenerator PAG = null;
    public boolean HasMoreAction = false;
+   private boolean buildBarracks = false;
+   
+   PathFinding pathFinding = new GreedyPathFinding();
+   
    public int Player = 0;
-   
-   public ArrayList<MCActionValue> HighPotenialMoves;
+   private int MaxPlayer = 0;
+   private int MinPlayer =0;
 
-   public double CheapEvaluation = 0.2;
-   boolean CanBuildBarracks = false;
-   private int MaxSampledMoves = 100;
-   private int MaxRandomMoves = 50;
-   private int MaxSampleIterations = 5000;
-   private boolean ShouldSampleMoves = true;
-   
-   private static double AttackValue = 2;
-   private static double HarvestValue = 5;
-   private static double ReturnValue = 1;
-   private static double ProduceValue = 1;
-   
-   
    public int MaxDepth = 10;
    public int Depth = 0;
-   
-   public int MaxBreadth =0;
-   public int Breadth = 0;
-   
+   private int Breadth = 0;
 
-   public long CutOffTime = 0;
-
- 
-   
    //RootNode only
-   public MCNode(int MaxPlayer, int MinPlayer, GameState gs, int MAXDEPTH, int breadth, long cutOffTime, int IsMaxBiasSamples, boolean bigMap)throws Exception
+   public MCNode(int maxPlayer, int minPlayer, GameState gs, int MAXDEPTH, boolean BuildBarracks)throws Exception
    {
-	   	if(Player == 1)MinPlayer = 0;
+	   	   Player = maxPlayer;
+		   MaxPlayer = maxPlayer;
+		   MinPlayer = minPlayer;
+		   buildBarracks = BuildBarracks;
 		   GSCopy = gs;
 		   MaxDepth = MAXDEPTH;
-		   MaxBreadth = breadth;
-		   CanBuildBarracks = bigMap;
-		   CutOffTime = cutOffTime;
 		   while(!GSCopy.canExecuteAnyAction(MaxPlayer) && !GSCopy.gameover() && !GSCopy.canExecuteAnyAction(MinPlayer) )
 		   {
 			   GSCopy.cycle();
@@ -88,17 +82,16 @@ public class MCNode
    
    
    //Main COnstructor for most Nodes
-   public MCNode(int MaxPlayer, int MinPlayer, PlayerAction move, GameState gs, MCNode parent) throws Exception
+   public MCNode(PlayerAction move, GameState gs, MCNode parent) throws Exception
    {
-	   	if(Player == 1)MinPlayer = 0;
 	   Move = move;
+	   GSCopy = gs;
+	   MaxPlayer = parent.MaxPlayer;
+	   MinPlayer = parent.MinPlayer;
+	   buildBarracks = parent.buildBarracks;
 	   Depth = parent.Depth+1;
 	   ParentNode = parent;
 	   MaxDepth = parent.MaxDepth;
-	   MaxBreadth = parent.MaxBreadth;
-	   CanBuildBarracks = parent.CanBuildBarracks;
-	   GSCopy = gs;
-	   CutOffTime = parent.CutOffTime;
 	   while(!GSCopy.canExecuteAnyAction(MaxPlayer) && !GSCopy.gameover() && !GSCopy.canExecuteAnyAction(MinPlayer) )
 	   {
 		   GSCopy.cycle();
@@ -123,19 +116,10 @@ public class MCNode
    private void Init() throws Exception
    {
 	   PAG = new PlayerActionGenerator(GSCopy, Player);
+	   RushUnits = new ArrayList<Unit>();
 		PopulateActionTable();
-//	   PAG.randomizeOrder();
-	   HighPotenialMoves = new ArrayList<MCActionValue>();
-	   CheapEvaluation = GetCheapEvaluationBound(CheapEvaluation);
 	   SampledMoves = new ArrayList<PlayerAction>();
 	   HasMoreAction = true;
-   }
-   
-   private double GetCheapEvaluationBound(double Bound)
-   {
-	   double total = AttackValue + ProduceValue + ReturnValue + HarvestValue;
-	   total = total/4;
-	   return total*Bound;
    }
    
    public double GetAverageEvaluation()
@@ -147,7 +131,7 @@ public class MCNode
    {
 	   if(Depth >= MaxDepth) return this;
 
-	   if(!EndGame && ChildActionMap.size() > 0  && r.nextDouble() <= Exploitation)
+	   if(!EndGame && ChildActionMap.size() > 0  && r.nextDouble() >= Exploitation)
 	   {
 		   return GetGreedyChild(MaxPlayer, MinPlayer).GetChild(MaxPlayer, MinPlayer);
 	   }
@@ -161,29 +145,22 @@ public class MCNode
    
    public MCNode GetGreedyChild(int MaxPlayer, int MinPlayer)   
    {
-	   MCNode GreedyChild = null;
+	   MCNode greediestChild = null;
+	   int pSwitch = 1;
+	   if(Player == MinPlayer)pSwitch = -1;
 	   
 	   if(r.nextFloat() >= EpsilonG) 
 	   {
-	           for(MCNode c: ChildActionMap.values())
+	       for(MCNode c: ChildActionMap.values())
+	       {
+	    	   double averageEvaluation = c.TotalEvaluation/c.Visits*pSwitch;
+	           if (greediestChild==null || averageEvaluation>(greediestChild.TotalEvaluation/greediestChild.Visits)) 
 	           {
-	        	   if(Player == MaxPlayer)
-	        	   {
-	                   if (GreedyChild==null || (c.TotalEvaluation/c.Visits)>(GreedyChild.TotalEvaluation/GreedyChild.Visits)) 
-	                   {
-	                       GreedyChild = c;
-	                   } 
-	        	   }
-	        	   else 
-	        	   {
-	                   if (GreedyChild==null || (c.TotalEvaluation/c.Visits)<(GreedyChild.TotalEvaluation/GreedyChild.Visits)) 
-	                   {
-	                       GreedyChild = c;
-	                   }
-	        	   }
-	           }
-	    	   return GreedyChild;
-       } 
+	               greediestChild = c;
+	           } 
+	       }
+		   return greediestChild;
+	   }
 	   else 
 	   {
            // choose one at random from the ones seen so far:
@@ -191,82 +168,18 @@ public class MCNode
        }
    }
    
-   public MCNode AddRandomChild(int MaxPlayer, int MinPlayer) throws Exception
-   {
-	   PlayerAction FinalAction = GetMove();
-	   GameState gs = GSCopy.cloneIssue(FinalAction);	
-	   MCNode n = new MCNode(MaxPlayer,MinPlayer, FinalAction, gs.clone(), this );
-	   SampledMoves.add(FinalAction);
-	   ChildActionMap.put(FinalAction.hashCode(), n);
-	   return n;
-   }
-   
    public MCNode GetRandomChild()
    {
 	  PlayerAction move = SampledMoves.get(r.nextInt(SampledMoves.size()));
 	  return ChildActionMap.get(move.hashCode());
    }
-   
-   public PlayerAction GetMove() throws Exception
-   {
-	   if(HighPotenialMoves.size() > 0)
-	   {
-	   		return HighPotenialMoves.remove(0).GetPlayerAction();
-	   }
-	   
-	   if(SampledMoves.size() > 0) return SampledMoves.remove(r.nextInt(SampledMoves.size()));
-	   
-	   if(HasMoreAction)
-	   {
-		   	PlayerAction pa =  PAG.getNextAction(CutOffTime);
-		   	if(pa != null)
-		   	{
-		   		return pa;
-		   	}
-		   	HasMoreAction = false;
-	   }
-	   
-	   return new PlayerAction();
 
-   }
-   
-   private void SampleAvailableMoves() throws Exception
-   {
-	   int iter =0;
-	   while(HighPotenialMoves.size() < MaxSampledMoves && iter < MaxSampleIterations )
-	   {
-		   PlayerAction move = PAG.getNextAction(CutOffTime);
-		   if(move != null)
-		   {
-			   EvaluateMove(move);
-		   }
-		   else
-		   {
-			   HasMoreAction = false;
-			   break;
-		   }
-		   iter++;
-	   }
-	   ShouldSampleMoves = false;
-	   HighPotenialMoves.sort((m2, m1) -> Double.compare(m1.GetValue(), m2.GetValue()));
-   }
-   
-   public MCNode AddQuickBiasChild(int MaxPlayer,int MinPlayer) throws Exception
-   {
-	   if(ShouldSampleMoves)
-	   {
-		   SampleAvailableMoves();
-	   }
-	   return AddChild(MaxPlayer, MinPlayer, GetMove());
-   }
-   
-   
-  public MCNode AddChild(int MaxPlayer,int MinPlayer, PlayerAction move) throws Exception
+   public MCNode AddChild(int MaxPlayer,int MinPlayer, PlayerAction move) throws Exception
    {
 	   if(move != null)
 	   {
 		   GameState gs = GSCopy.cloneIssue(move);
-		   MCNode n = new MCNode(MaxPlayer,MinPlayer, move, gs.clone(), this );
+		   MCNode n = new MCNode(move, gs.clone(), this );
     	   ChildActionMap.put(move.hashCode(), n);
     	   SampledMoves.add(move);
 		   Breadth++;
@@ -276,53 +189,6 @@ public class MCNode
 
    }
   
-   public double EvaluateMove(PlayerAction move)
-   {
-	   double h = 0;
-	   double a = 0;
-	   double r = 0;
-	   double p = 0;
-	   int size = 0;
-	   boolean ShouldAdd = true;
-	   for(Pair<Unit, UnitAction> UnitPair : move.getActions())
-	   {
-		   size++;
-		   if(UnitPair.m_b.getType() == UnitAction.TYPE_ATTACK_LOCATION)
-		   {
-			   a += 1*AttackValue;
-		   }
-		   else if(UnitPair.m_b.getType() == UnitAction.TYPE_HARVEST)
-		   {
-			   h += 1*HarvestValue;
-		   }
-		   else if(UnitPair.m_b.getType() == UnitAction.TYPE_PRODUCE)
-		   {
-				  if(UnitPair.m_a.getType().canHarvest && !CanBuildBarracks )
-				  {
-					  p = -100000;
-					 ShouldAdd = false;
-				  }
-			   p += 1*ProduceValue;
-		   }
-		   else if(UnitPair.m_b.getType() == UnitAction.TYPE_RETURN)
-		   {
-			   r += 1*ReturnValue;
-		   }
-	   }
-	   double result = a+h+r+p/size;
-	   if(result > CheapEvaluation && HighPotenialMoves.size() < MaxSampledMoves && ShouldAdd)
-	   {
-	   		HighPotenialMoves.add(new MCActionValue(move, result));
-	   		return result;
-	   }
-	   else if(SampledMoves.size() < MaxRandomMoves  && ShouldAdd)
-	   {
-		   SampledMoves.add(move);
-		   return result;
-	   }
-	   return result;
-   }
-   
    public MCNode GetBestNode()
    {
 	   MCNode best =null;
@@ -344,13 +210,20 @@ public class MCNode
    {
 	   	UnitActionTable = new ArrayList<MCUnitActions>();
 	   	ChildActionMap = new LinkedHashMap<Integer, MCNode>();
-	   	int idx = 0;
 	    for (Pair<Unit, List<UnitAction>> choice : PAG.getChoices()) 
 	    {
 	    	MCUnitActions unitAction = new MCUnitActions(choice.m_a,(ArrayList<UnitAction>)choice.m_b);
-	    	UnitActionTable.add(unitAction);
-            idx++;
+	    	if((choice.m_a.getType().canHarvest || choice.m_a.getType().produces.size()>0))
+	    	{
+		    	
+		    	UnitActionTable.add(unitAction);
+	    	}
+	    	else
+	    	{
+	    		RushUnits.add(choice.m_a);
+	    	}
 	    }
+	    
    }
    
    public MCNode AddActionTableNode(int MaxPlayer, int MinPlayer) throws Exception
@@ -365,23 +238,40 @@ public class MCNode
        
       //Get the resource usage, so we can check to see if we are creating valid actions
        ResourceUsage base_ru = GetResourceUsage();
-       
+      
+       PhysicalGameState pgs = GSCopy.getPhysicalGameState();
+
 	   PlayerAction FinalAction;
        FinalAction = new PlayerAction();
        FinalAction.setResourceUsage(base_ru.clone());
+       
+       for(Unit u: RushUnits)
+       {
+    	   Unit e = MCKarlo.getNearestEnemy(GSCopy.getPhysicalGameState(), GSCopy.getPlayer(Player), u);
+    	   if(e != null)
+    	   {
+    		   TryAndRushUnit(u, e, FinalAction, pgs);
+    	   }
+       }
+       
        for(int i =0;  i <  UnitActionTable.size(); i++)
        {
                MCUnitActions unitActions = UnitActionTable.get(i);
+               Unit u = unitActions.GetUnit();
                UnitAction ua;
                ResourceUsage r2 = null;
                while(true)
                {   
                    ua = unitActions.GetWeightedAction();
-                   
-                   if(ua == null)break;
-                   
-                   r2 = ua.resourceUsage(unitActions.GetUnit(), GSCopy.getPhysicalGameState());                            
-            	   if(FinalAction.getResourceUsage().consistentWith(r2, GSCopy)) break;
+                   if(!buildBarracks && (u.getType().canHarvest && ua.getType() == UnitAction.TYPE_PRODUCE))
+                   {
+                	   System.out.println("Trying to build a barracks when I shouldnt!! bad bot");
+                   }
+                   else 
+                   {
+	                   r2 = ua.resourceUsage(unitActions.GetUnit(), GSCopy.getPhysicalGameState());
+	                   if(FinalAction.getResourceUsage().consistentWith(r2, GSCopy)) break;
+                   }
                }
                FinalAction.getResourceUsage().merge(r2);
                FinalAction.addUnitAction(unitActions.GetUnit(), ua);
@@ -405,8 +295,14 @@ public class MCNode
            {
                if (UAs.GetUnit() == ua.m_a)UnitTable = UAs;
            }
-           if(UnitTable == null) System.out.println("UnitTable not found");
-           UnitTable.UpdateAction(ua.m_b, Eval);
+           if(UnitTable == null)
+           {
+        	   //this  happens when a rush unit is cycled through. 
+           }
+           else 
+           {
+        	 UnitTable.UpdateAction(ua.m_b, Eval);
+           }
        }
    }
    
@@ -418,6 +314,11 @@ public class MCNode
        {
     	   ParentNode.UpdateParentActionTableEntry(Move, Eval);
        }
+   }
+
+   public PlayerAction GetNodeMove()
+   {
+	   return Move;
    }
    
    private ResourceUsage GetResourceUsage()
@@ -434,4 +335,35 @@ public class MCNode
        }
        return r;
    }
+   
+   private void TryAndRushUnit(Unit u, Unit e, PlayerAction FinalAction, PhysicalGameState pgs)
+   {
+	   UnitAction ua = null;
+	   ResourceUsage r2 = null;
+       int dx = e.getX()-u.getX();
+       int dy = e.getY()-u.getY();
+       double d = Math.sqrt(dx*dx+dy*dy);
+       if (d<=u.getAttackRange()) 
+       {
+           ua = new UnitAction(UnitAction.TYPE_ATTACK_LOCATION,e.getX(),e.getY());
+           if(ua != null)
+           {
+        	   r2 = ua.resourceUsage(u, pgs);
+           }
+       } 
+       else
+       {
+    	    ua = pathFinding.findPath(u, e.getPosition(pgs), GSCopy, FinalAction.getResourceUsage());
+    	    if(ua!= null)
+    	    {
+    	    	r2 = ua.resourceUsage(u, pgs);
+    	    }
+       }
+	   if(r2 != null && FinalAction.getResourceUsage().consistentWith(r2, GSCopy))
+	   {
+		   FinalAction.getResourceUsage().merge(r2);
+           FinalAction.addUnitAction(u, ua);
+	   }
+   }
+   
 }

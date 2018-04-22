@@ -25,11 +25,13 @@ public class MCUnitActions
 	public MCUnitActions(Unit u, ArrayList<UnitAction> uas)
 	{
 		unit = u;
-		Actions = (ArrayList<UnitAction>)uas;
+		
+		Actions = uas;
 		NumberOfActions = Actions.size();
 		ActionEvaluations = new double[NumberOfActions];
 		ActionVisits = new int[NumberOfActions];
 		ActionWeights = new double[NumberOfActions];
+
 		for(int i = 0; i < NumberOfActions; i++)
 		{
 			ActionEvaluations[i] = 0;
