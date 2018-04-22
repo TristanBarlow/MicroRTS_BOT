@@ -75,13 +75,13 @@ public class MCNode
    
    //This can be used to either generate already complete PlayerActions (ive tried dont bother thats not useful)
    //Or used to get a list of all the units and their available actions.(This is the good one).
-   private PlayerActionGenerator PAG = null;
+   private PlayerActionGenerator actionGenerator = null;
    
    //If true, it will filter out any actions the workers have that are of type produce.
    // This should be set to true on small maps, as sometimes they try and fail to build a barracks
    private boolean buildBarracks = false;
    
-   //The pathfinding that is to be used to find the route to the nearest enemy(only used for the rush units)
+   //The path finding that is to be used to find the route to the nearest enemy(only used for the rush units)
    PathFinding pathFinding = new GreedyPathFinding();
    
    //the player the moves are currently being sampled for. (Not the owner Of the move stored in the move field!!!)
@@ -94,10 +94,10 @@ public class MCNode
    private int minPlayer =0;
 
    //The max depth allowed for the algorithm to explore. Will return self if Maxdepth >= depth
-   private int MaxDepth = 10;
+   private int maxDepth = 10;
    
    //The current depth of the node.
-   private int Depth = 0;
+   private int depth = 0;
 
    //setters getters
    public GameState GetGamestate() {return gsCopy;}
@@ -124,50 +124,60 @@ public class MCNode
 		   minPlayer = MinPlayer;
 		   buildBarracks = BuildBarracks;
 		   gsCopy = gs;
-		   MaxDepth = MAXDEPTH;
+		   maxDepth = MAXDEPTH;
 		   
-		   while(!gsCopy.canExecuteAnyAction(maxPlayer) && !gsCopy.gameover() && !gsCopy.canExecuteAnyAction(minPlayer) )
+		   //Cycle the gamestate until a point where any player can make a move.
+		   CycleGameState();
+
+		   //Since it is the root, we know the next player to make a move is the maxplayer
+		   //but just a sanity check anyway. Might catch a random error
+		   if(!EndGame && gsCopy.canExecuteAnyAction(maxPlayer))
 		   {
-			   gsCopy.cycle();
-		   }
-		   if(gsCopy.gameover()&& gsCopy.winner() != -1 )
-		   {
-			   EndGame = true;
-		   }
-		   else if(gsCopy.canExecuteAnyAction(maxPlayer))
-		   {
-			   player = maxPlayer;
+			   //initialise the node variables
 			   Init();
 		   }
 
    }
    
-   //Main COnstructor for most Nodes
+
+/**
+ * This is the main constructor for most nodes.
+ * @param tMove       this is the last move to be made that resulted in this gamestate
+ * @param gs          this is the gamesate after the move tmove has been issued to it.
+ * @param parent      the node that is responsible for the creation of the current node.
+ * @throws Exception  blah blah same old bad practice.(not me)
+ */
    public MCNode(PlayerAction tMove, GameState gs, MCNode parent) throws Exception
    {
+	   //set the move(tMove) that got us to the state (gs) gs has the move (tmove)
+	   //already set to execute, the game needs to cycle to carryout the move.
 	   move = tMove;
 	   gsCopy = gs;
+	   
+	   //get the data from the parent node.
 	   maxPlayer = parent.maxPlayer;
 	   minPlayer = parent.minPlayer;
 	   buildBarracks = parent.buildBarracks;
-	   Depth = parent.Depth+1;
 	   parentNode = parent;
-	   MaxDepth = parent.MaxDepth;
-	   while(!gsCopy.canExecuteAnyAction(maxPlayer) && !gsCopy.gameover() && !gsCopy.canExecuteAnyAction(minPlayer) )
+	   maxDepth = parent.maxDepth;
+	   
+	   //increment depth
+	   depth = parent.depth+1;
+	   
+	   //cycle the gamestate until a player can move... or not
+	   CycleGameState();
+	   
+	   if(!EndGame && gsCopy.canExecuteAnyAction(maxPlayer))
 	   {
-		   gsCopy.cycle();
-	   }
-	   if(gsCopy.gameover()&& gsCopy.winner() != -1 )
-	   {
-		   EndGame = true;
-	   }
-	   else if(gsCopy.canExecuteAnyAction(maxPlayer))
-	   {
+		   //if the next player that can move is the maxplayer
+		   //we know that the move(tmove) was the minplayers move.
 		   player = maxPlayer;
 		   Init();
 	   }
-	   else if(gsCopy.canExecuteAnyAction(minPlayer))
+	   if(!EndGame && gsCopy.canExecuteAnyAction(minPlayer))
 	   {
+		   //if the next player that can move is the minaplayer
+		   //we know that the move(tmove) was the maxplayers move.
 		   player = minPlayer;
 		   Init();
 	   }
@@ -176,7 +186,7 @@ public class MCNode
    
    private void Init() throws Exception
    {
-	   PAG = new PlayerActionGenerator(gsCopy, player);
+	   actionGenerator = new PlayerActionGenerator(gsCopy, player);
 	   RushUnits = new ArrayList<Unit>();
 		PopulateActionTable();
 	   sampledMoves = new ArrayList<PlayerAction>();
@@ -184,7 +194,7 @@ public class MCNode
    
    public MCNode GetChild(int MaxPlayer, int MinPlayer) throws Exception
    {
-	   if(Depth >= MaxDepth) return this;
+	   if(depth >= maxDepth) return this;
 
 	   if(!EndGame && childActionMap.size() > 0  && r.nextDouble() >= Exploitation)
 	   {
@@ -192,7 +202,7 @@ public class MCNode
 	   }
 	   else if(!EndGame)
 	   {
-		   return AddActionTableNode(MaxPlayer, MinPlayer);
+		   return AddActionTableNode();
 	   }
 	   
 	   return this;
@@ -225,6 +235,18 @@ public class MCNode
 	   return best;
    }
   
+   private void CycleGameState()
+   {	
+	   while(!gsCopy.canExecuteAnyAction(maxPlayer) && !gsCopy.gameover() && !gsCopy.canExecuteAnyAction(minPlayer) )
+		{
+			   gsCopy.cycle();
+		}
+	   if(gsCopy.gameover()&& gsCopy.winner() != -1 )
+	   {
+		   EndGame = true;
+	   }
+   }
+   
    private MCNode GetGreedyChild(int MaxPlayer, int MinPlayer)   
    {
 	   MCNode greediestChild = null;
@@ -245,7 +267,7 @@ public class MCNode
    {
 	   	unitActionTable = new ArrayList<MCUnitActions>();
 	   	childActionMap = new LinkedHashMap<Integer, MCNode>();
-	    for (Pair<Unit, List<UnitAction>> choice : PAG.getChoices()) 
+	    for (Pair<Unit, List<UnitAction>> choice : actionGenerator.getChoices()) 
 	    {
 	    	MCUnitActions unitAction = new MCUnitActions(choice.m_a,(ArrayList<UnitAction>)choice.m_b);
 	    	if((choice.m_a.getType().canHarvest || choice.m_a.getType().produces.size()>0))
@@ -261,12 +283,25 @@ public class MCNode
 	    
    }
    
-   private MCNode AddActionTableNode(int MaxPlayer, int MinPlayer) throws Exception
+   /**
+    * This is the main function that handles the creation of new player actions from the list of units and there available unit actions
+    * Some of the code, especially to do with the merging resource usages etc. Has been adapted from the sample bots.
+    * @return            It will return either a new node with its generated player action. Or an existing node with the
+    *                    same action that was generated
+    * @throws Exception
+    */
+   private MCNode AddActionTableNode() throws Exception
    {
+	   
+	   //Calculate each actions value for each unit in the action table
        for(MCUnitActions unitActions: unitActionTable)
        {
+    	   //used to as a switch, as the min player evaluaitons are negative. but we still
+    	   //want to assume the minplayer will pick the best moves
     	   boolean isMinPlayer = true;
-    	   if(player == MaxPlayer) isMinPlayer = false;
+    	   if(player == maxPlayer) isMinPlayer = false;
+    	   
+    	   //call the function that will do the calculations.
            unitActions.CalculateActionWeights(isMinPlayer);  
        }
        
@@ -274,15 +309,23 @@ public class MCNode
       //Get the resource usage, so we can check to see if we are creating valid actions
        ResourceUsage base_ru = GetResourceUsage();
       
+       //get the physical gamestate, assigned to a local variable to reduce the amount of 
+       // function calls.
        PhysicalGameState pgs = gsCopy.getPhysicalGameState();
 
+       //create the player action we will fill with unit actions
 	   PlayerAction FinalAction;
        FinalAction = new PlayerAction();
+       
+       //give the player action the resource usage it is allowed for its move
        FinalAction.setResourceUsage(base_ru.clone());
        
+       //Make any Rush units rush.
        for(Unit u: RushUnits)
        {
     	   Unit e = MCKarlo.getNearestEnemy(gsCopy.getPhysicalGameState(), gsCopy.getPlayer(player), u);
+    	   
+    	   //quick check to see if there are any enemies left to attack
     	   if(e != null)
     	   {
     		   TryAndRushUnit(u, e, FinalAction, pgs);
@@ -315,9 +358,9 @@ public class MCNode
        MCNode node = childActionMap.get(FinalAction.hashCode());
        if(node == null)
        {
-    	  return AddChild(MaxPlayer, MinPlayer, FinalAction);
+    	  return AddChild(FinalAction);
        }
-       return node.GetChild(MaxPlayer, MinPlayer);
+       return node.GetChild(maxPlayer, minPlayer);
    }
    
    private void UpdateParentActionTableEntry(PlayerAction pa, double Eval) 
@@ -341,7 +384,7 @@ public class MCNode
        }
    }
     
-   private MCNode AddChild(int MaxPlayer,int MinPlayer, PlayerAction move) throws Exception
+   private MCNode AddChild(PlayerAction move) throws Exception
    {
 	   if(move != null)
 	   {
