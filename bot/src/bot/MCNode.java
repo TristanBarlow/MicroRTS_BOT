@@ -126,7 +126,14 @@ public class MCNode
 		   gsCopy = gs;
 		   MaxDepth = MAXDEPTH;
 		   
-		   
+		   while(!gsCopy.canExecuteAnyAction(maxPlayer) && !gsCopy.gameover() && !gsCopy.canExecuteAnyAction(minPlayer) )
+		   {
+			   gsCopy.cycle();
+		   }
+		   if(gsCopy.gameover()&& gsCopy.winner() != -1 )
+		   {
+			   EndGame = true;
+		   }
 		   Init();
 
    }
