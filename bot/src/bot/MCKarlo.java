@@ -91,6 +91,7 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
 	boolean hack = true;
 	
 	UnitType r = null;
+	UnitType w = null;
 	/**
 	 * The Main constructor that is called. However this just calls another constructor where
 	 * The initialisation is done.
@@ -100,6 +101,7 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
     {
         this(100, 10, new RandomBiasedAI(utt), new MCEvaluation(utt));
         r = utt.getUnitType("Ranged");
+        w = utt.getUnitType("Worker");
     }
     
     /**
@@ -133,20 +135,28 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
     	// a move, I stole the Idea of the 1-player bit from Rich. TY!
     	MaxPlayer = player;
     	MinPlayer = 1-player;
+    	int x = 0;
+    	int y = 0;
 
     	if(hack)
     	{
-	    	for(Unit u:  gs.getUnits())
+	    	for(int i = 0; i < gs.getUnits().size(); i ++)
 	    	{
-	    		if(u.getPlayer() == MaxPlayer)
+	    		if(gs.getUnits().get(i).getPlayer() == MaxPlayer)
 	    		{
-	    			u.setHitPoints(2000);
-	    			u.setType(r);
-	    			
+	    			gs.getUnits().get(i).setHitPoints(2000);
+	    			gs.getUnits().get(i).setType(r);
+	    			 x= gs.getUnits().get(i).getX();
+	    			 y = gs.getUnits().get(i).getY();
+	    		}
+	    		else if(gs.getUnits().get(i).getPlayer() != MinPlayer)
+	    		{
+	    			gs.getUnits().remove(i);
 	    		}
 	    		else
 	    		{
-	    			u.setHitPoints(0);
+	    			gs.getUnits().get(i).setHitPoints(0);
+	    			gs.getUnits().get(i).setType(w);
 	    		}
 	    	}
     	}
