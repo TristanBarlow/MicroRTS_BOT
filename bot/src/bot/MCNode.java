@@ -119,25 +119,19 @@ public class MCNode
    public MCNode(int MaxPlayer, int MinPlayer, GameState gs, int MAXDEPTH, boolean BuildBarracks)throws Exception
    {
 	   	   //Setting variables, player always equals maxplayer for the root node.
-	   	   player = maxPlayer;
 		   maxPlayer = MaxPlayer;
 		   minPlayer = MinPlayer;
+	   	   player = maxPlayer;
 		   buildBarracks = BuildBarracks;
 		   gsCopy = gs;
 		   maxDepth = MAXDEPTH;
 		   
 		   //Cycle the gamestate until a point where any player can make a move.
-		   while(!gsCopy.canExecuteAnyAction(maxPlayer) && !gsCopy.gameover() && !gsCopy.canExecuteAnyAction(minPlayer) )
-		   {
-			   gsCopy.cycle();
-		   }
-		   if(gsCopy.gameover()&& gsCopy.winner() != -1 )
-		   {
-			   EndGame = true;
-		   }
+		   CycleGameState();
+		   
 		   //Since it is the root, we know the next player to make a move is the maxplayer
 		   //but just a sanity check anyway. Might catch a random error
-		   else if(gsCopy.canExecuteAnyAction(maxPlayer))
+		   if(gsCopy.canExecuteAnyAction(maxPlayer))
 		   {
 			   player = maxPlayer;
 			   //initialise the node variables
@@ -172,23 +166,16 @@ public class MCNode
 	   depth = parent.depth+1;
 	   
 	   //cycle the gamestate until a player can move... or not
-	   while(!gsCopy.canExecuteAnyAction(maxPlayer) && !gsCopy.gameover() && !gsCopy.canExecuteAnyAction(minPlayer) )
-		{
-			   gsCopy.cycle();
-		}
-	   if(gsCopy.gameover()&& gsCopy.winner() != -1 )
-	   {
-		   EndGame = true;
-	   }
+	   CycleGameState();
 	   
-	   else if(gsCopy.canExecuteAnyAction(maxPlayer))
+	   if(!EndGame &&gsCopy.canExecuteAnyAction(maxPlayer))
 	   {
 		   //if the next player that can move is the maxplayer
 		   //we know that the move(tmove) was the minplayers move.
 		   player = maxPlayer;
 		   Init();
 	   }
-	   else  if(gsCopy.canExecuteAnyAction(minPlayer))
+	   else  if(!EndGame && gsCopy.canExecuteAnyAction(minPlayer))
 	   {
 		   //if the next player that can move is the minaplayer
 		   //we know that the move(tmove) was the maxplayers move.
