@@ -87,6 +87,9 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
 	private boolean IsStuck = false;
 	
 	
+	
+	boolean hack = true;
+	
 	UnitType r = null;
 	/**
 	 * The Main constructor that is called. However this just calls another constructor where
@@ -130,17 +133,23 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
     	// a move, I stole the Idea of the 1-player bit from Rich. TY!
     	MaxPlayer = player;
     	MinPlayer = 1-player;
-    	
-    	for(Unit u:  gs.getUnits())
+
+    	if(hack)
     	{
-    		if(u.getPlayer() == MaxPlayer)
-    		{
-    			u.setHitPoints(200);
-    			u.setType(r);
-    			
-    		}
+	    	for(Unit u:  gs.getUnits())
+	    	{
+	    		if(u.getPlayer() == MaxPlayer)
+	    		{
+	    			u.setHitPoints(2000);
+	    			u.setType(r);
+	    			
+	    		}
+	    		else
+	    		{
+	    			u.setHitPoints(0);
+	    		}
+	    	}
     	}
-    	
     	//A heuristic for large Maps, this will alter how the AI will playout as on bigger maps
     	// its good at producing but doesn't have the depth to see enemies to attack.
     	if(gs.getPhysicalGameState().getWidth()* gs.getPhysicalGameState().getHeight() > 144 ||gs.getPhysicalGameState().getWidth()*gs.getPhysicalGameState().getHeight() == 72  )
