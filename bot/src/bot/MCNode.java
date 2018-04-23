@@ -58,7 +58,7 @@ public class MCNode
    
    //This is the probability out of 1 that it will choose an exisitng greedy child,seen it called epsilon blah blah.
    //Its basically exploitation vs exploration. 
-   private double Exploitation = 0.6;
+   private double Exploitation = 0.3;
    
    //Used to determine in some random calculations.
    private Random r = new Random();
@@ -71,7 +71,7 @@ public class MCNode
    
    //After the game has cycled until a player can move again, if the game has ended this will turn true. This stops
    // some nasty exceptions when you try and do stuff with empty lists etc.
-   private boolean EndGame = false;
+   private boolean endGame = false;
    
    //This can be used to either generate already complete PlayerActions (ive tried dont bother thats not useful)
    //Or used to get a list of all the units and their available actions.(This is the good one).
@@ -104,6 +104,7 @@ public class MCNode
    public MCNode GetParentNode() {return parentNode;}
    public int GetNumberOfChildren() {return childActionMap.size();}
    public PlayerAction GetNodeMove(){return move;}
+   public int GetDepth()  {return depth;}
    
    /**
     * This constructor should only be used for the root node. 
@@ -168,7 +169,7 @@ public class MCNode
 	   //cycle the gamestate until a player can move... or not
 	   CycleGameState();
 	   
-	   if(!EndGame)
+	   if(!endGame)
 	   {
 		   if(gsCopy.canExecuteAnyAction(maxPlayer))
 		   {
@@ -198,6 +199,8 @@ public class MCNode
 	   actionGenerator = new PlayerActionGenerator(gsCopy, player);
 	   RushUnits = new ArrayList<Unit>();
 	   sampledMoves = new ArrayList<PlayerAction>();
+	   unitActionTable = new ArrayList<MCUnitActions>();
+	   childActionMap = new LinkedHashMap<Integer, MCNode>();
 	  
 	   //Call that will use the action generator to populate the unitActionTable
 	   PopulateActionTable();
@@ -217,24 +220,24 @@ public class MCNode
 	   //depth check, if max depth return the current node.
 	   if(depth >= maxDepth) return this;
 
+	   //If it has reached the endgame state return
+	   if(endGame)return this;
+	   
 	   //If it isnt an endgame state, and we have children to look through, leave it to random
 	   //chance to decide whether or not to get a greedy child or add a new child
 	   // a 60% chance to exploit seems a good number. Changing it depending
 	   //on the evaluation of the node might be a good idea. I will test
-	   if(!EndGame && childActionMap.size() > 0  && r.nextDouble() <= Exploitation)
+	   if(childActionMap.size() > 0  && r.nextDouble() <= Exploitation)
 	   {
-		   return GetGreedyChild(maxPlayer, minPlayer).GetChild();
+		   return GetGreedyChild().GetChild();
 	   }
 	   
 	   //if its not end game and the rng decided we're going to explore
 	   //return a new node(maybe) based on the action table stored in the unitActionTable
-	   else if(!EndGame)
+	   else
 	   {
 		   return AddActionTableNode();
 	   }
-	   
-	   //if it somehow gets here, return this just in case.
-	   return this;
    }
    
    /**
@@ -259,9 +262,19 @@ public class MCNode
        }
    }
 
+   /**
+    * This function sorts through the current childaction map of the node
+    * it will return the node with the most visits, if two nodes have the same
+    * amount of visits it will return the one with the best evaluation.
+    * @return A refernce to the best node. 
+    */
    public MCNode GetBestNode()
    {
+	   //empty best node.
 	   MCNode best =null;
+	   
+	   //for loop going through all the values in childactionMap
+	   //evaluated as shown.
 	   for(MCNode mc : childActionMap.values())
 	   {
 		   if(best == null || mc.Visits >= best.Visits)
@@ -276,23 +289,43 @@ public class MCNode
 	   return best;
    }
   
+   /**
+    * When an action is issued with "clone issue" you get a copy of the gamestate
+    * with the actions "loaded" into it. This function will play out the action
+    * And break when it finds when a player can move. It also checks for an endgame
+    * state.
+    */
    private void CycleGameState()
    {	
+	   //cycle game until someone can use a move, or the game is over.
 	   while(!gsCopy.canExecuteAnyAction(maxPlayer) && !gsCopy.gameover() && !gsCopy.canExecuteAnyAction(minPlayer) )
 		{
 			   gsCopy.cycle();
 		}
+	   
+	   //if the gameover caused the loop to break, set this node as a terminal state node.
 	   if(gsCopy.gameover()&& gsCopy.winner() != -1 )
 	   {
-		   EndGame = true;
+		   endGame = true;
+		   
 	   }
    }
    
-   private MCNode GetGreedyChild(int MaxPlayer, int MinPlayer)   
+   /**
+    * This function sorts cycles through all the children of the current node, and gets child with the largest average evaluation
+    * @return A reference to the child with the highest average evaluation.
+    */
+   private MCNode GetGreedyChild()   
    {
-	   MCNode greediestChild = null;
+	   //This switches depending on the player, the minplayer nodes store negative values
+	   //so we multiply by the switch to change it to positive to work for the comparison
 	   int pSwitch = 1;
-   		if(player == MinPlayer)pSwitch = -1;
+   	   if(player == minPlayer)pSwitch = -1;
+   	   
+   	   //Node that will be returned
+	   MCNode greediestChild = null;
+	   
+	   //loop through all the values in the child action map and compare as shown below.
        for(MCNode c: childActionMap.values())
        {
     	   double averageEvaluation = c.TotalEvaluation/c.Visits*pSwitch;
@@ -304,10 +337,11 @@ public class MCNode
 		   return greediestChild;
    }
 
+   /**
+    * This function, will use the action generator to get all the units and all their choices
+    */
    private void PopulateActionTable()
    {
-	   	unitActionTable = new ArrayList<MCUnitActions>();
-	   	childActionMap = new LinkedHashMap<Integer, MCNode>();
 	    for (Pair<Unit, List<UnitAction>> choice : actionGenerator.getChoices()) 
 	    {
 	    	MCUnitActions unitAction = new MCUnitActions(choice.m_a,(ArrayList<UnitAction>)choice.m_b);
@@ -438,18 +472,6 @@ public class MCNode
 	   return null;
 
    }
-   
-   private double GetAverageEvaluation()
-   {
-	   return TotalEvaluation/Visits;
-   }
-   
-   private MCNode GetRandomChild()
-   {
-	  PlayerAction move = sampledMoves.get(r.nextInt(sampledMoves.size()));
-	  return childActionMap.get(move.hashCode());
-   }
-   
    private ResourceUsage GetResourceUsage()
    {
 	   ResourceUsage r = new ResourceUsage();
@@ -494,5 +516,6 @@ public class MCNode
            FinalAction.addUnitAction(u, ua);
 	   }
    }
+
    
 }

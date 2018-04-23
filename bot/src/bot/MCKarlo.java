@@ -63,7 +63,7 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
 	private int MaxDepth = 10;
 	
 	//How Long the simulations should look ahead to see value of an action
-	private int LookaHead = 50;
+	private int LookaHead = 70;
 	
 	//When the GameState.time() received from the getAction call goes above this it will trigger the rush.
 	private int RushTimer = 4500;
@@ -80,13 +80,11 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
     
 	//Annoying the AI tried to build barracks on small maps. Which is a bad idea.
 	//This will make any unitactions searched through ignore barracks builds.
-	private boolean canBuildBarracks = true;
+	private boolean canBuildBarracks = false;
 	
 	//Used When In the late game to trigger a rush. This is to stop those annoying moments when its winning
 	//But can't see far enough into the board to see a win state
 	private boolean IsStuck = false;
-	
-	AI SecondPolicy = new RandomBiasedAI();
 	
 	/**
 	 * The Main constructor that is called. However this just calls another constructor where
@@ -95,7 +93,7 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
 	 */
     public MCKarlo(UnitTypeTable utt) 
     {
-        this(100, 20, new RandomAI(utt), new MCEvaluation(utt));
+        this(100, 10, new RandomBiasedAI(utt), new SimpleSqrtEvaluationFunction3());
     }
     
     /**
@@ -134,10 +132,9 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
     	// its good at producing but doesn't have the depth to see enemies to attack.
     	if(gs.getPhysicalGameState().getWidth()* gs.getPhysicalGameState().getHeight() > 144 ||gs.getPhysicalGameState().getWidth()*gs.getPhysicalGameState().getHeight() == 72  )
     		{
-    			//RushTimer = 4500;
+    			RushTimer = 2000;
     			canBuildBarracks = true;
     		}
-    	
     	//This Is where the main computation algorithms are called on the outermost layer
     	// only called if the current game time is less than the rush timer
     	// and it Isn't stuck
@@ -221,6 +218,8 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
         	
             //After the simulating is done evaluate the state of the game.
             double tEval = EvaluationClass.evaluate(MaxPlayer, MinPlayer, gs2);
+            
+            System.out.println(tEval);
             
             //Propagate the evaluation values up the tree inside this function the individual unit move evaluation is assigned.
             while(node != null)
@@ -346,7 +345,7 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
             } 
             else 
             {
-                gs.issue(SecondPolicy.getAction(MaxPlayer, gs));
+                gs.issue(BaseAI.getAction(MaxPlayer, gs));
                 gs.issue(BaseAI.getAction(MinPlayer, gs));
             }
         }while(!gameover && gs.getTime()<time);   

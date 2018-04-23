@@ -79,6 +79,10 @@ public class MCUnitActions
            {
         	   ActionWeights[bestIndex] = (1-EpsilonL)+ (EpsilonL/NumberOfActions);
            }
+           for(int j = 0;j<ActionVisits.length;j++) 
+           {
+               if (ActionVisits[j]>0) ActionVisits[j] = 0;
+           }
            SetUnsampledActions();
 	}
 	private void SetUnsampledActions()
