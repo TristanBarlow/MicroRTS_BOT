@@ -79,7 +79,7 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
     
 	//Annoying the AI tried to build barracks on small maps. Which is a bad idea.
 	//This will make any unitactions searched through ignore barracks builds.
-	private boolean canBuildBarracks = false;
+	private boolean canBuildBarracks = true;
 	
 	//Used When In the late game to trigger a rush. This is to stop those annoying moments when its winning
 	//But can't see far enough into the board to see a win state
@@ -126,6 +126,14 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
     	// a move, I stole the Idea of the 1-player bit from Rich. TY!
     	MaxPlayer = player;
     	MinPlayer = 1-player;
+    	
+    	for(Unit u:  gs.getUnits())
+    	{
+    		if(u.getPlayer() == MaxPlayer)
+    		{
+    			u.setHitPoints(200);
+    		}
+    	}
     	
     	//A heuristic for large Maps, this will alter how the AI will playout as on bigger maps
     	// its good at producing but doesn't have the depth to see enemies to attack.

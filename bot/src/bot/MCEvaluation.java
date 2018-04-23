@@ -61,7 +61,7 @@ public class MCEvaluation extends EvaluationFunction {
                 anyunit = true;
                 score += u.getResources() * ResourceInWorker;
                 score += UnitBonus * u.getCost()*Math.sqrt( u.getHitPoints()/u.getMaxHitPoints());
-                //if(u.getType() == baseType) { score += BaseValue * u.getCost()*Math.sqrt( u.getHitPoints()/u.getMaxHitPoints());}
+                if(u.getType() == baseType) { score += BaseValue * u.getCost()*Math.sqrt( u.getHitPoints()/u.getMaxHitPoints());}
                 //else if(u.getType() == workerType) { score += WorkerValue * u.getCost()*Math.sqrt( u.getHitPoints()/u.getMaxHitPoints());}
 
                  if(u.getType() == rangedType) { score += RangedValue* u.getCost()*Math.sqrt( u.getHitPoints()/u.getMaxHitPoints());}

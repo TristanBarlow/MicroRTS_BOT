@@ -1,6 +1,4 @@
 package bot;
-
-import java.awt.List;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -8,7 +6,6 @@ import java.util.Random;
 
 import rts.UnitAction;
 import rts.units.Unit;
-import util.Sampler;
 
 public class MCUnitActions
 {
@@ -21,6 +18,7 @@ public class MCUnitActions
     private int[] ActionVisits = null;
     private double[] ActionWeights = null;
     private Map<Integer, Double> UnsampledActions = null;
+	private Random r = new Random();
 	
 	public MCUnitActions(Unit u, ArrayList<UnitAction> uas)
 	{
@@ -97,7 +95,7 @@ public class MCUnitActions
 	{
 		if(UnsampledActions.size() == 0)return null;
 		
-		Random r = new Random();
+		
 		double total = 0;
 		int[] indexs = new int[UnsampledActions.size()];
 		int i = 0;
