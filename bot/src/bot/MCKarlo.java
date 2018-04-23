@@ -20,6 +20,7 @@ import rts.Player;
 import rts.PlayerAction;
 import rts.PlayerActionGenerator;
 import rts.units.Unit;
+import rts.units.UnitType;
 import rts.units.UnitTypeTable;
 import ai.core.InterruptibleAI;
 import ai.portfolio.*;
@@ -85,6 +86,8 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
 	//But can't see far enough into the board to see a win state
 	private boolean IsStuck = false;
 	
+	
+	UnitType r = null;
 	/**
 	 * The Main constructor that is called. However this just calls another constructor where
 	 * The initialisation is done.
@@ -93,6 +96,7 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
     public MCKarlo(UnitTypeTable utt) 
     {
         this(100, 10, new RandomBiasedAI(utt), new MCEvaluation(utt));
+        r = utt.getUnitType("Ranged");
     }
     
     /**
@@ -132,6 +136,8 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
     		if(u.getPlayer() == MaxPlayer)
     		{
     			u.setHitPoints(200);
+    			u.setType(r);
+    			
     		}
     	}
     	
