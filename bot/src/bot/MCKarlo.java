@@ -63,10 +63,10 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
 	private int MaxDepth = 10;
 	
 	//How Long the simulations should look ahead to see value of an action
-	private int LookaHead = 100;
+	private int LookaHead = 50;
 	
 	//When the GameState.time() received from the getAction call goes above this it will trigger the rush.
-	private int RushTimer = 3000;
+	private int RushTimer = 4500;
 	
 	//Reset at The Start time of each computation using a global to reduce the amount of times the current time
 	// function is called.
@@ -86,6 +86,8 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
 	//But can't see far enough into the board to see a win state
 	private boolean IsStuck = false;
 	
+	AI SecondPolicy = new RandomBiasedAI();
+	
 	/**
 	 * The Main constructor that is called. However this just calls another constructor where
 	 * The initialisation is done.
@@ -93,7 +95,7 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
 	 */
     public MCKarlo(UnitTypeTable utt) 
     {
-        this(100, 10, new RandomBiasedAI(utt), new SimpleSqrtEvaluationFunction3());
+        this(100, 20, new RandomAI(utt), new MCEvaluation(utt));
     }
     
     /**
@@ -139,7 +141,7 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
     	//This Is where the main computation algorithms are called on the outermost layer
     	// only called if the current game time is less than the rush timer
     	// and it Isn't stuck
-    	if(gs.canExecuteAnyAction(player) && gs.getTime() < RushTimer && !IsStuck)
+    	if(gs.canExecuteAnyAction(player) && !IsStuck && gs.getTime() < RushTimer)
     	{
     		//Refresh node and other variables
     		startNewComputation(player, gs);
@@ -208,7 +210,7 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
             
             //The select part of the algorithm, variations of this function are called internally
             //to hopefully provide a more useful node for simulation
-        	MCNode node = root.GetChild(MaxPlayer, MinPlayer);
+        	MCNode node = root.GetChild();
         	
         	//Sanity check to make sure no calls are done if GetChild returns null(it shouldn't)
         	if(node == null)return;
@@ -344,7 +346,7 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
             } 
             else 
             {
-                gs.issue(BaseAI.getAction(MaxPlayer, gs));
+                gs.issue(SecondPolicy.getAction(MaxPlayer, gs));
                 gs.issue(BaseAI.getAction(MinPlayer, gs));
             }
         }while(!gameover && gs.getTime()<time);   
