@@ -407,6 +407,8 @@ public class MCNode
     	   }
        }
        
+       // The actual creation of the player action, by looping though the unit action table and getting a valid
+       //unit action for each unit.
        for(int i =0;  i <  unitActionTable.size(); i++)
        {
                MCUnitActions unitActions = unitActionTable.get(i);
