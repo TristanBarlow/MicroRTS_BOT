@@ -1,6 +1,7 @@
 package bot;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Random;
@@ -407,31 +408,52 @@ public class MCNode
     	   }
        }
        
+       //randomise List so that the same units dont get their action priority.
+       //could sort via the units average evaluation. So that the units that are doing the most
+       //have the likely hood of using their actions first
+       Collections.shuffle(unitActionTable);
+       
        // The actual creation of the player action, by looping though the unit action table and getting a valid
        //unit action for each unit.
        for(int i =0;  i <  unitActionTable.size(); i++)
        {
+    	   	   // the the first units fromt the action table in order
                MCUnitActions unitActions = unitActionTable.get(i);
+               
+               //get the unit from the unitaction table.
                Unit u = unitActions.GetUnit();
+               
+               //Initialise variables
                UnitAction ua;
                ResourceUsage r2 = null;
+               
+               //This will keep looping until the unit action picked agrees with the resource usage of the player action
                while(true)
                {   
+            	   //gets an action semi randomly, depending on the greater the unit action weighting the more
+            	   //likely it is to be picked.
                    ua = unitActions.GetWeightedAction();
+                   
+                   //Sometimes it tries to build a barracks, this stops that
                    if(!buildBarracks && (u.getType().canHarvest && ua.getType() == UnitAction.TYPE_PRODUCE))
                    {
                 	   //System.out.println("Trying to build a barracks when I shouldnt!! bad bot");
                    }
                    else 
                    {
+                	   //check to see if the unit actions is consistent with the playeractions resource usage
+                	   //if so break
 	                   r2 = ua.resourceUsage(unitActions.GetUnit(), gsCopy.getPhysicalGameState());
 	                   if(FinalAction.getResourceUsage().consistentWith(r2, gsCopy)) break;
                    }
                }
+               
+               //merge the resource usage and unit actions with our return player action
                FinalAction.getResourceUsage().merge(r2);
                FinalAction.addUnitAction(unitActions.GetUnit(), ua);
        }
        
+       //check to see if we already have the final action in the child action map
        MCNode node = childActionMap.get(FinalAction.hashCode());
        if(node == null)
        {
@@ -440,6 +462,12 @@ public class MCNode
        return node.GetChild();
    }
    
+   /**
+    * Given a player action, check to see if the unit actions in the player action
+    * are present in the unit action table if so, update the actions value
+    * @param pa Move that contains the unit actions
+    * @param Eval The evaluation of the player action to be propagated to the unit actions
+    */
    private void UpdateParentActionTableEntry(PlayerAction pa, double Eval) 
    {
 
@@ -461,6 +489,12 @@ public class MCNode
        }
    }
     
+   /**
+    * Adds a child to the childaction map.
+    * @param move the move that was taken make the new gamestate the node represents
+    * @return	returns a reference to the node that was created(or null) if there is a mistake
+    * @throws Exception
+    */
    private MCNode AddChild(PlayerAction move) throws Exception
    {
 	   if(move != null)
@@ -474,6 +508,12 @@ public class MCNode
 	   return null;
 
    }
+   
+   /**
+    * This wil calculate the available resource usage for all units 
+    * in the current gamestate GS
+    * @return The available resource usage of the gsCopy gamestate
+    */
    private ResourceUsage GetResourceUsage()
    {
 	   ResourceUsage r = new ResourceUsage();
@@ -489,13 +529,25 @@ public class MCNode
        return r;
    }
    
+   /**
+    * This function tries to rush the unit given. some of this code is taken and adapted from the
+    * sample code
+    * @param u 			 The unit to do the rushing
+    * @param e			 The enemy the unit u will be rushing to kill
+    * @param FinalAction The action to write the unit action to. 
+    * @param pgs 	     The physical gamestate
+    */
    private void TryAndRushUnit(Unit u, Unit e, PlayerAction FinalAction, PhysicalGameState pgs)
    {
 	   UnitAction ua = null;
 	   ResourceUsage r2 = null;
+	   
+	   //get the distance and the direction taken from sample code
        int dx = e.getX()-u.getX();
        int dy = e.getY()-u.getY();
        double d = Math.sqrt(dx*dx+dy*dy);
+       
+       //check to see if the unit is in their range
        if (d<=u.getAttackRange()) 
        {
            ua = new UnitAction(UnitAction.TYPE_ATTACK_LOCATION,e.getX(),e.getY());
@@ -512,6 +564,9 @@ public class MCNode
     	    	r2 = ua.resourceUsage(u, pgs);
     	    }
        }
+       
+       //if the unitaction is valid with the current resource usage, merge it with the player action
+       //this writes to the actual playeraction.
 	   if(r2 != null && FinalAction.getResourceUsage().consistentWith(r2, gsCopy))
 	   {
 		   FinalAction.getResourceUsage().merge(r2);
