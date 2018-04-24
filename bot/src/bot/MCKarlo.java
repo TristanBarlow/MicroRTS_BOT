@@ -93,7 +93,7 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
 	 */
     public MCKarlo(UnitTypeTable utt) 
     {
-        this(100, 10, new RandomBiasedAI(utt), new SimpleSqrtEvaluationFunction3());
+        this(100, 10, new RandomBiasedAI(utt), new MCEvaluation(utt));
     }
     
     /**
@@ -218,8 +218,6 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
         	
             //After the simulating is done evaluate the state of the game.
             double tEval = EvaluationClass.evaluate(MaxPlayer, MinPlayer, gs2);
-            
-            System.out.println(tEval);
             
             //Propagate the evaluation values up the tree inside this function the individual unit move evaluation is assigned.
             while(node != null)

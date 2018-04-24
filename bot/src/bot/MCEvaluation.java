@@ -11,18 +11,18 @@ import rts.units.*;
 /**
  * 
  * @author Tristan
- *
+ *Heavily copied default evaluation, just edited a bit to increase certain behaviours.
  */
 public class MCEvaluation extends EvaluationFunction {    
     public static float ResourceValue = 40;
     public static float BarracksValue = 50;
     public static float ResourceInWorker = 10;
-    public static float BaseValue = 10;
+    public static float BaseValue = 200;
     public static float RangedValue = 200;
     public static float WorkerValue = 10;
-    public static float LightValue =200;
+    public static float LightValue =100;
     public static float UnitBonus = 40;
-    public static float HeavyValue =1000;
+    public static float HeavyValue =10;
     
     UnitType workerType;
     UnitType baseType;

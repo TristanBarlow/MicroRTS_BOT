@@ -558,6 +558,7 @@ public class MCNode
        } 
        else
        {
+    	   //use the pathfinding class to get the next position the unit should go in
     	    ua = pathFinding.findPath(u, e.getPosition(pgs), gsCopy, FinalAction.getResourceUsage());
     	    if(ua!= null)
     	    {
