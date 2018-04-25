@@ -66,7 +66,7 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
 	private int LookaHead = 70;
 	
 	//When the GameState.time() received from the getAction call goes above this it will trigger the rush.
-	private int RushTimer = 4500;
+	private int RushTimer = 5010;
 	
 	//Reset at The Start time of each computation using a global to reduce the amount of times the current time
 	// function is called.
@@ -93,7 +93,7 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
 	 */
     public MCKarlo(UnitTypeTable utt) 
     {
-        this(100, 10, new RandomBiasedAI(utt), new SimpleSqrtEvaluationFunction3());
+        this(100, 10, new RandomBiasedAI(utt), new MCEvaluation(utt));
     }
     
     /**
@@ -132,7 +132,7 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
     	// its good at producing but doesn't have the depth to see enemies to attack.
     	if(gs.getPhysicalGameState().getWidth()* gs.getPhysicalGameState().getHeight() > 144 ||gs.getPhysicalGameState().getWidth()*gs.getPhysicalGameState().getHeight() == 72  )
     		{
-    			RushTimer = 2000;
+    			//RushTimer = 2000;
     			canBuildBarracks = true;
     		}
     	//This Is where the main computation algorithms are called on the outermost layer
@@ -215,9 +215,13 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
             //GameState Simulation
         	GameState gs2 = node.GetGamestate().clone();
         	SimulateGame(gs2, gs2.getTime() + LookaHead);
+        	int time = gs2.getTime() - StartGameState.getTime();
+        	
         	
             //After the simulating is done evaluate the state of the game.
-            double tEval = EvaluationClass.evaluate(MaxPlayer, MinPlayer, gs2);
+        	//The multiplication at the end make sure that My ai does not think its won the moment it sees a terminal
+        	//state
+            double tEval = EvaluationClass.evaluate(MaxPlayer, MinPlayer, gs2)*Math.pow(0.99,time/10.0);;
             
             System.out.println(tEval);
             

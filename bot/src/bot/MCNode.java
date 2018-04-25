@@ -1,6 +1,7 @@
 package bot;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Random;
@@ -406,6 +407,8 @@ public class MCNode
     		   TryAndRushUnit(u, e, FinalAction, pgs);
     	   }
        }
+       
+      Collections.shuffle(unitActionTable);
        
        // The actual creation of the player action, by looping though the unit action table and getting a valid
        //unit action for each unit.
