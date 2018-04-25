@@ -223,8 +223,6 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
         	//state
             double tEval = EvaluationClass.evaluate(MaxPlayer, MinPlayer, gs2)*Math.pow(0.99,time/10.0);;
             
-            System.out.println(tEval);
-            
             //Propagate the evaluation values up the tree inside this function the individual unit move evaluation is assigned.
             while(node != null)
             {
