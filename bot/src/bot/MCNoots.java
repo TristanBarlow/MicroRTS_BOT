@@ -135,7 +135,7 @@ public class MCNoots extends AbstractionLayerAI implements InterruptibleAI
     	// its good at producing but doesn't have the depth to see enemies to attack.
     	if(gs.getPhysicalGameState().getWidth()* gs.getPhysicalGameState().getHeight() > 144 ||gs.getPhysicalGameState().getWidth()*gs.getPhysicalGameState().getHeight() == 72  )
     		{
-    			RushTimer = 2000;
+    			//RushTimer = 2000;
     			canBuildBarracks = true;
     		}
     	//This Is where the main computation algorithms are called on the outermost layer
@@ -218,9 +218,13 @@ public class MCNoots extends AbstractionLayerAI implements InterruptibleAI
             //GameState Simulation
         	GameState gs2 = node.GetGamestate().clone();
         	SimulateGame(gs2, gs2.getTime() + LookaHead);
+        	int time = gs2.getTime() - StartGameState.getTime();
+        	
         	
             //After the simulating is done evaluate the state of the game.
-            double tEval = EvaluationClass.evaluate(MaxPlayer, MinPlayer, gs2);
+        	//The multiplication at the end make sure that My ai does not think its won the moment it sees a terminal
+        	//state
+            double tEval = EvaluationClass.evaluate(MaxPlayer, MinPlayer, gs2)*Math.pow(0.99,time/10.0);;
             
             //Propagate the evaluation values up the tree inside this function the individual unit move evaluation is assigned.
             while(node != null)
