@@ -48,10 +48,10 @@ public class MCNoots extends AbstractionLayerAI implements InterruptibleAI
 	private int MaxDepth = 10;
 	
 	//How Long the simulations should look ahead to see value of an action
-	private int LookaHead = 70;
+	private int LookaHead = 100;
 	
 	//When the GameState.time() received from the getAction call goes above this it will trigger the rush.
-	private int RushTimer = 3000;
+	private int RushTimer = 4500;
 	
 	//Reset at The Start time of each computation using a global to reduce the amount of times the current time
 	// function is called.
@@ -117,7 +117,7 @@ public class MCNoots extends AbstractionLayerAI implements InterruptibleAI
     	// its good at producing but doesn't have the depth to see enemies to attack.
     	if(gs.getPhysicalGameState().getWidth()* gs.getPhysicalGameState().getHeight() > 144 ||gs.getPhysicalGameState().getWidth()*gs.getPhysicalGameState().getHeight() == 72  )
     		{
-    			//RushTimer = 2000;
+    			RushTimer = 2000;
     			canBuildBarracks = true;
     		}
     	//This Is where the main computation algorithms are called on the outermost layer
