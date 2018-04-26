@@ -2,37 +2,19 @@ package bot;
 
 import ai.core.AI;
 import ai.RandomBiasedAI;
-import ai.core.AIWithComputationBudget;
 import ai.core.ParameterSpecification;
 import ai.evaluation.EvaluationFunction;
-import ai.evaluation.SimpleSqrtEvaluationFunction3;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Random;
-
-import javax.naming.ldap.StartTlsRequest;
 
 import rts.GameState;
 import rts.PhysicalGameState;
 import rts.Player;
 import rts.PlayerAction;
-import rts.PlayerActionGenerator;
 import rts.units.Unit;
-import rts.units.UnitType;
 import rts.units.UnitTypeTable;
 import ai.core.InterruptibleAI;
-import ai.portfolio.*;
-import ai.minimax.*;
 import ai.abstraction.*;
 import ai.abstraction.pathfinding.AStarPathFinding;
-import ai.abstraction.pathfinding.GreedyPathFinding;
-import ai.RandomAI;
-import java.util.Map;
-import ai.abstraction.cRush.*;
-import ai.abstraction.*;
-
 
 /**
  * @author Tristan
