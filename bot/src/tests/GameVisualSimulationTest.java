@@ -8,6 +8,7 @@ package tests;
 import ai.core.AI;
 import ai.RandomBiasedAI;
 import ai.abstraction.WorkerRush;
+import ai.abstraction.cRush.CRush_V1;
 import ai.abstraction.cRush.CRush_V2;
 import ai.abstraction.pathfinding.BFSPathFinding;
 import ai.mcts.MCTSNode;
@@ -54,7 +55,7 @@ public class GameVisualSimulationTest
 			"../microrts/maps/8x8/basesWorkers8x8J.xml",
 			"../microrts/maps/8x8/basesWorkers8x8K.xml",
 			"../microrts/maps/8x8/basesWorkers8x8L.xml",
-*/			"../microrts/maps/8x8/basesWorkers8x8Obstacle.xml",
+*///			"../microrts/maps/8x8/basesWorkers8x8Obstacle.xml",
 /*			"../microrts/maps/8x8/basesWorkersBarracks8x8.xml",
 			"../microrts/maps/8x8/FourBasesWorkers8x8.xml",
 			"../microrts/maps/8x8/melee8x8light4.xml",
@@ -64,7 +65,7 @@ public class GameVisualSimulationTest
 			"../microrts/maps/8x8/ThreeBasesWorkers8x8.xml",
 			"../microrts/maps/8x8/TwoBasesWorkers8x8.xml",
 */			
-	//		"../microrts/maps/10x10/basesWorkers10x10.xml",
+//			"../microrts/maps/10x10/basesWorkers10x10.xml",
 			
 	//		"../microrts/maps/12x12/basesWorkers12x12.xml",
 /*			"../microrts/maps/12x12/complexBasesWorkers12x12.xml",
@@ -75,7 +76,7 @@ public class GameVisualSimulationTest
 			"../microrts/maps/12x12/ThreeBasesWorkers12x12.xml",
 			"../microrts/maps/12x12/TwoBasesWorkers12x12.xml",
 */			
-			"../microrts/maps/16x16/basesWorkers16x16.xml",
+//			"../microrts/maps/16x16/basesWorkers16x16.xml",
 /*			"../microrts/maps/16x16/basesWorkers16x16A.xml",
 			"../microrts/maps/16x16/basesWorkers16x16B.xml",
 			"../microrts/maps/16x16/basesWorkers16x16C.xml",
@@ -93,7 +94,7 @@ public class GameVisualSimulationTest
 			"../microrts/maps/16x16/melee16x16Mixed12.xml",
 			"../microrts/maps/16x16/TwoBasesBarracks16x16.xml",
 */			
-//			"../microrts/maps/24x24/basesWorkers24x24.xml",
+			"../microrts/maps/24x24/basesWorkers24x24.xml",
 /*			"../microrts/maps/24x24/basesWorkers24x24A.xml",
 			"../microrts/maps/24x24/basesWorkers24x24B.xml",
 			"../microrts/maps/24x24/basesWorkers24x24C.xml",
@@ -219,10 +220,10 @@ public class GameVisualSimulationTest
     	        int PERIOD = 20;
     	        boolean gameover = false;
     	        
-    	        AI ai2 = new MCKarlo(utt);
+    	        AI ai2 = new MCNoots(utt);
     	       // ai1.ChangeInputParams(b, d, l);
     	        
-    	        AI ai1 = new UCT(utt);//RandomBiasedAI();//
+    	        AI ai1 = new NaiveMCTS(utt);//RandomBiasedAI();//
     	        
     	        JFrame w = null;
     	        if(Visualise)w = PhysicalGameStatePanel.newVisualizer(gs,640,640,false,PhysicalGameStatePanel.COLORSCHEME_BLACK);
