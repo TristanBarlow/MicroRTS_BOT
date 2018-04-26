@@ -115,11 +115,18 @@ public class MCNoots extends AbstractionLayerAI implements InterruptibleAI
     	
     	//A heuristic for large Maps, this will alter how the AI will playout as on bigger maps
     	// its good at producing but doesn't have the depth to see enemies to attack.
-    	if(gs.getPhysicalGameState().getWidth()* gs.getPhysicalGameState().getHeight() > 144 ||gs.getPhysicalGameState().getWidth()*gs.getPhysicalGameState().getHeight() == 72  )
-    		{
-    			RushTimer = 2000;
-    			canBuildBarracks = true;
-    		}
+    	if(gs.getPhysicalGameState().getWidth()* gs.getPhysicalGameState().getHeight() > 144 )
+		{
+			RushTimer = 2000;
+			canBuildBarracks = true;
+		}
+    	
+    	//if its no where to run, keep the rush timer high, but allow barracks building
+    	if(gs.getPhysicalGameState().getWidth()*gs.getPhysicalGameState().getHeight() == 72  )
+    	{
+    		canBuildBarracks = true;
+    	}
+    	
     	//This Is where the main computation algorithms are called on the outermost layer
     	// only called if the current game time is less than the rush timer
     	// and it Isn't stuck
