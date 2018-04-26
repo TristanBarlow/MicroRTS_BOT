@@ -51,17 +51,17 @@ public class MCNoots extends AbstractionLayerAI implements InterruptibleAI
 	private int LookaHead = 70;
 	
 	//When the GameState.time() received from the getAction call goes above this it will trigger the rush.
-	private int RushTimer = 5010;
+	private int RushTimer = 3000;
 	
 	//Reset at The Start time of each computation using a global to reduce the amount of times the current time
 	// function is called.
  	private long StartTime = 0;
  	
- 	// Reset at the start of each computation, this is calculated by the start time + the time budget 
-    private long CutOffTime = 0;
+ 	 //Reset at the start of each computation, this is calculated by the start time + the time budget 
+   	 private long CutOffTime = 0;
 	
-    // This is the amount of time in milliseconds the AI is allowed to do its computation;
-    private int TimeBudget = 0;
+        //This is the amount of time in milliseconds the AI is allowed to do its computation;
+   	 private int TimeBudget = 0;
     
 	//Annoying the AI tried to build barracks on small maps. Which is a bad idea.
 	//This will make any unitactions searched through ignore barracks builds.
