@@ -399,7 +399,7 @@ public class MCNode
        //Make any Rush units rush.
        for(Unit u: RushUnits)
        {
-    	   Unit e = MCKarlo.getNearestEnemy(gsCopy.getPhysicalGameState(), gsCopy.getPlayer(player), u);
+    	   Unit e = MCNoots.getNearestEnemy(gsCopy.getPhysicalGameState(), gsCopy.getPlayer(player), u);
     	   
     	   //quick check to see if there are any enemies left to attack
     	   if(e != null)

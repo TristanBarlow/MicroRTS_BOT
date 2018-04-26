@@ -35,10 +35,13 @@ import ai.abstraction.*;
 
 
 /**
- *Not really sure what you call this algorithm Its a bit of this a bit of that
- *
+ * @author Tristan
+ *This bot implements an MCTS algorithm with the main focus
+ * being on the individual evaluation of each units action
+ * And sampling unit actions based on random chance and previous
+ * unit actions evaluations
  */
-public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI 
+public class MCNoots extends AbstractionLayerAI implements InterruptibleAI 
 {
 	//Evaluation Method Used To determine the effectiveness of the input gamestate
 	private EvaluationFunction EvaluationClass;
@@ -66,7 +69,7 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
 	private int LookaHead = 70;
 	
 	//When the GameState.time() received from the getAction call goes above this it will trigger the rush.
-	private int RushTimer = 4500;
+	private int RushTimer = 5010;
 	
 	//Reset at The Start time of each computation using a global to reduce the amount of times the current time
 	// function is called.
@@ -91,19 +94,19 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
 	 * The initialisation is done.
 	 * @param utt
 	 */
-    public MCKarlo(UnitTypeTable utt) 
+    public MCNoots(UnitTypeTable utt) 
     {
         this(100, 10, new RandomBiasedAI(utt), new MCEvaluation(utt));
     }
     
     /**
-     * The Main constructor for MCKarlo where the initialisation of the AIs policies are done
+     * The Main constructor for MCNoots where the initialisation of the AIs policies are done
      * @param MaxComutationTime This goes into the parent class and initialises the TIME_BUDGET variable
      * @param depth				Sets the MaxDepth of the Search Tree
      * @param AIPolicy			This Sets the Simulation Playout Policy.
      * @param EF				This sets the Evaluation function used to determine the effectiveness of the actions
      */
-    public MCKarlo(int MaxComutationTime,int depth, AI AIPolicy, EvaluationFunction EF) 
+    public MCNoots(int MaxComutationTime,int depth, AI AIPolicy, EvaluationFunction EF) 
     {
     	//Parent Initialisation 
         super(new AStarPathFinding());
@@ -257,7 +260,7 @@ public class MCKarlo extends AbstractionLayerAI implements InterruptibleAI
 	public AI clone()
 	{
 		// TODO Auto-generated method stub
-		return new MCKarlo(TimeBudget,MaxDepth, BaseAI, EvaluationClass);
+		return new MCNoots(TimeBudget,MaxDepth, BaseAI, EvaluationClass);
 	}
 	
 	/**
