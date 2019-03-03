@@ -1,21 +1,4 @@
-# comp250-bot
+# MicroRTS BOT
 
-This is the base repository for COMP250 assignment 1, task 2 (MicroRTS bot).
-
-## [Tournament leaderboard](http://comp250.falmouth.games)
-
-## Getting started
-
-For detailed instructions, watch [this video](https://youtu.be/pvzp8c4nZaU).
-
-* Fork this repository
-* Go to Settings -> Webhooks -> Add Webhook
-* Enter the following details:
-  - Payload URL: http://comp250.falmouth.games/hook
-  - Content type: application/json
-  - Secret: leave blank
-  - Which events: just the push event
-  - Active: yes
-  - Click Add Webhook
-* Clone your repository, making sure to also clone submodules (e.g. "Recursive" option in TortoiseGit, `--recurse-submodules` switch on command line)
-* Pushes to the master branch will automatically trigger an upload to the tournament server
+In this project,  I was tasked to create a bot for the real-time strategy game called MicroRTS. MicroRTS is written in Java and the way in which user bots were integrated meant the bots had to be written in Java also. The bot I wrote used a two-layered Monte Carlo Tree Search algorithm it achieved a moderate amount of success when compared with the sample bots provided. One rule required the bots to make a move within 100ms. The algorithm I wrote gave back better results the more time it had to run, I found optimising the algorithm often resulted in a large improvement in performance. I often found it frustrating to determine whether or not changes made to the bot actually improved the performance of the bot.
+![](MICRO_GIF.gifs)
